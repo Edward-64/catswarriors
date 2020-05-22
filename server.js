@@ -77,11 +77,11 @@ function setCookie(rawData, res) {
 		if (password === db[i].password && alias === db[i].alias) break;
 	}
 	if (i !== ++lastCat) {
-		res.statusCode = 200;
+//		res.statusCode = 200;
 		res.setHeader('content-type', 'application/json;charset=utf-8');
 		res.end(JSON.stringify({res: 1, token: db[i].cookie}));
 	} else {
-		res.statusCode = 200;
+//		res.statusCode = 200;
 		res.setHeader('content-type', 'application/json;charset=utf-8');
 		res.end(JSON.stringify({res: 0}));
 	}
@@ -119,7 +119,7 @@ function existingCookie(req, rawData) {
 
 function createCharacter(rawData, req, res) {
 	function sendCrJSON(id) {
-               	res.statusCode = 200;
+  //          	res.statusCode = 200;
 		res.setHeader('content-type', 'application/json;charset=utf-8');
 		res.end(JSON.stringify(resOfServ[id]));
 	}
@@ -158,7 +158,7 @@ function createCharacter(rawData, req, res) {
 			else if (existingCookie(req, rawData) < 0) { //Создай проверку на то, что девайсы совпадают
 				const c = existingCookie(req,rawData);
 				didInfr('creatingTwoChar', -c);
-	              		res.statusCode = 200;
+//	              		res.statusCode = 200;
       				res.setHeader('content-type', 'application/json;charset=utf-8');
 	      			res.end(JSON.stringify({res: `<span class='lower-text'>У Вас уже есть персонаж по имени ${db[-c].catName}.` +
 				`Создание сразу двух и более персонажей запрещено, поэтому, если продолжите попытки создания нового персонажа,` +
@@ -221,7 +221,7 @@ function download(req, res, contentLength, path) {
 
 function checkCookie(type, res, answ) {
 	if (type === 'user') {
-		res.statusCode = 200;
+//		res.statusCode = 200;
 		res.setHeader('content-type', 'application/json;charset=utf-8');
 		res.end(JSON.stringify(answ));
 	} else if (type === 'admin') {
@@ -290,7 +290,7 @@ function getBufferFile(res, path) {
 		} else {
 			answ.res = 1;
 			answ.data = data.toString('utf8');
-			res.statusCode = 200;
+//			res.statusCode = 200;
 			res.setHeader('content-type', 'application/json; charset=utf-8');
 			res.end(JSON.stringify(answ));
 		}
@@ -300,6 +300,12 @@ function getBufferFile(res, path) {
 http.createServer((req, res) => {
 	let path = req.url.match(/\/{1}[\w\d\.\/]*/i);
 	const c = existingCookie(req, false);
+
+	if (req.headers.upgrade === 'websocket') {
+		res.statusCode = 101;
+		res.setHeader('connection', 'upgrade');
+		res.setHeafer('upgrade', 'websocket');
+	}
 
 	if (path) { path = path[0] } else path = '/';
 	if (/auth=undefined/.test(req.headers.cookie)) req.headers.cookie = '';
