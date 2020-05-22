@@ -392,10 +392,9 @@ http.createServer((req, res) => {
 const WebSocket = require('ws'),
         WebSocketServer = WebSocket.Server,
         wss = new WebSocketServer({port: 8181}),
-//      fs = require('fs'),
         world = require('./databases/game.js'); //нужно сохранять периодически
-//      db = require('./databases/cats.js'),
-//      ch = require('./lib/cookie.js').include(db);
+  //      db = require('./databases/cats.js'),
+//        ch = require('./lib/cookie.js').include(db);
 
 const clients = []; const cash = [];
 
@@ -448,26 +447,11 @@ class World {
                         let i = 0;
                         for(; i < w.length; i++) {
                                 if (w[i].pn === pn) break;
-                       }
+                        }
                         p = (i !== w.length) ? w[i] : p;
                 }
                 //в возвращаемых значениях хранятся ссылки
                 return {place: place, data: p};
-        }
-}
-class Entity {
-        constructor() {
-                this.health = 100;
-        }
-}
-
-
-//экземпляр класса должен быть создан до входа в игру,
-//например, при регистрации
-class Cat extends Entity {
-        constructor() {
-                super();
-                this.lastPlace = [0, 56, 13]; //локация, чанкХ, чанкУ, рандомизируй
         }
 }
 
@@ -487,7 +471,7 @@ function wsSend(type, data, socket) {
                                 pn: data[0].data.pn,
                                 chunk: data[1],
                         }));
-               }
+                }
         } else if (type == 4) {
                 for(let j = 0; j < clients.length; j++) {
                   if (clients[j].loc === data.place) clients[j].ws.send(JSON.stringify({
@@ -507,7 +491,8 @@ function wsSend(type, data, socket) {
         } else if (type == 2) {
                 socket.send(JSON.stringify({
                         type: 2,
-                       name: data.name,
+                        pn: data.pn,
+                        name: data.name,
                         chunk: data.chunk,
                 }));
         }
@@ -524,8 +509,8 @@ wss.on('connection', (ws) => {
 				headers: {
 					cookie: decodeURI(m),
 				}
-			};
-                        pn = existingCookie(freq, false);
+			}
+                        pn = ch.existingCookie(freq, false);
                         let      g = World.findPlayer(pn);
                         if (!g.data) { //если он впервые заходит в игру, то этот скрипт запускается
                                 const cat = {

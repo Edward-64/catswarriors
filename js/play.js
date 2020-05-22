@@ -1,4 +1,5 @@
-const ws = new WebSocket('wss://85.174.204.71:8181'),
+const HOST = location.origin.replace(/^http/, 'ws'),
+	ws = new WebSocket(HOST),
 	place = document.getElementById('headloc'),
 	mouselistener = document.getElementById('mouselistener'),
 	gameplace = document.getElementById('place'),
