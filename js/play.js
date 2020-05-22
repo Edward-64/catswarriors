@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://192.168.1.5:8181'),
+const ws = new WebSocket('wss://192.168.1.5:8181'),
 	place = document.getElementById('headloc'),
 	mouselistener = document.getElementById('mouselistener'),
 	gameplace = document.getElementById('place'),
