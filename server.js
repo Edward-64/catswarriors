@@ -5,7 +5,8 @@ const http = require('http'),
 	formidable = require('formidable'),
 	MAP_OF_TOKEN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
 	L_MAP = MAP_OF_TOKEN.length,
-	db = require('./databases/cats.js');
+	db = require('./databases/cats.js'),
+	ws = require('./WSserver.js');
 //	ch = require('./lib/cookie.js').include(db);
 
 function error500(res) {
