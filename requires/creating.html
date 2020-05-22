@@ -1,0 +1,36 @@
+<p class="head-text" style="margin-top: 0px">Создание персонажа</p>
+<div style="position: relative;top: -20px;left: -2px;background: url('css/img/line.png') repeat-x;height: 20px;"></div>
+<button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
+<form name="create" onsubmit="createCharacter(); return false;" style="position: relative; top: -20px">
+		<div>
+			<div class="fiels-div">Имя персонажа</div>
+			<div class="fiels-div"><input class="form" name="catName" value="" autocomplete="off" placeholder="Пишите здесь"></div>
+			<div class="fiels-divErr" id="catName"></div>
+			</div>
+		<div>
+			<div class="fiels-div">Пол</div>
+			<div class="fiels-div"><input class="form" type="radio" name="gender" value="1" id="catRadio">Кот
+	                <input class="form" type="radio" name="gender" value="0" id="catRadio2">Кошка</div>
+			<div class="fiels-divErr" id="gender"></div>
+		</div>
+		<div>
+			<div class="fiels-div">Пароль</div>
+			<div class="fiels-div"><input class="form" type="password" name="password" value="" autocomplete="off"></div>
+			<div class="fiels-divErr" id="password"></div>
+		</div>
+		<div>
+			<div class="fiels-div">Повторите пароль</div>
+			<div class="fiels-div"><input class="form" type="password" name="passwordRepeat" value="" autocomplete="off"></div>
+		</div>
+		<div>
+			<div class="fiels-div">Псевдоним</div>
+			<div class="fiels-div"><input class="form" name="alias" value="" autocomplete="off"></div>
+			<div class="fiels-divErr" id="alias"></div>
+		</div>
+		<div style="position: relative; top: -8px;">
+			<div class="fiels-div"><p class="lower-text">Псевдоним не будет виден другим игрокам</p></div>
+			<div class="fiels-div"></div>
+			<div class="fiels-divErr"></div>
+		</div>
+		<div style="text-align: center; position: relative; left: -15px"><button class="form" type="button" onclick="createCharacter()">Создать</button></div>
+</form>

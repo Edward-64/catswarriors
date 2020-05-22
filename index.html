@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Котики</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+	<div id="container">
+		<div id="cover">
+			<div id="require">
+				<p class="no-margin head-text">Что хотите?</p>
+				<form name="meowing" onsubmit="sendRequire(); return false;">
+					<p><input class="form" style="padding-left: 5px; width: 250px" name="meowing" autocomplete="off" placeholder="Пишите здесь">
+					<button class="form" type="button" onclick="sendRequire();">Мяукнуть</button>
+				</form>
+				<div id="noRequire"></div>
+				
+			</div>
+		</div>
+		<div id="lower-cover"></div>
+	</div>
+<script src="js/handlerRequires.js"></script>
+</body>
+</html>

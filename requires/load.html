@@ -1,0 +1,16 @@
+<!--
+Попробуй то же самое, но на websocket
+	
+<form name="sendData" onsubmit="sendData(); return false;">
+	<input type="file" name="message" value="">
+	<input type="submit" value"Отправить">
+</form>
+-->
+
+<button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
+<form enctype="multipart/form-data" method="POST" action="/dlf">
+	<p><label class="no-margin" for="fieldName"><p class="head-text">Укажите местоположение файла на сервере</p><p style="font-size: 12px; margin: 0px">Например: /dir/lower_dir/file.txt</p></label></p>
+	<p><input class="form" type="text" id="fieldName" name="path"></p>
+	<input class="form" type="file" accept="image/*" id="fieldPhoto" data-url="/upload" name="photo">
+	<button class="form" type="submit">Отправить</button>
+</form>

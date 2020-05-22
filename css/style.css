@@ -1,0 +1,110 @@
+html {
+	color: #0f0905;
+	background: #bb8b54;
+	font-family: Verdana, Arial, Helvetica, sans-serif; 
+	font-size: 10pt;
+	font-weight: 600;
+}
+
+body {
+	margin: 0px;
+}
+
+.form {
+	border-radius: 5px;
+	background-color: #bb8b54;
+	border: 2px solid #0f0905;
+}
+
+.form:focus {
+	outline-color: #bb8b54;
+}
+
+.form::placeholder {
+	color: #925e36;
+}
+
+#container {
+	margin: 40px auto;
+	width: 640px;
+	height: 360px;
+}
+
+#cover {
+	position: relative;
+	width: 640px;
+	height: 360px;
+	background-image: url('img/line.png'), url('img/line.png'), url('img/verticalLine.png'), url('img/verticalLine.png');
+	background-position: bottom, top, right, left;
+	background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+	z-index: 10;
+	
+}
+
+#lower-cover {
+	position: relative;
+	width: 620px;
+	height: 340px;
+	background-image: url('img/head.jpg');
+	left: 5px;
+	bottom: 350px;
+	z-index: 9;
+}
+
+#require {
+	padding: 20px;
+}
+
+#noRequire {
+	padding: 5px;
+	width: 340px;
+	border: 2px solid #0f0905; 
+	border-radius: 5px;
+	display: none;
+	background: #bb8b54;
+}
+
+.no-margin {
+	margin: 0px;
+}
+
+.back-button {
+	position: absolute;
+	right: 6px;
+	top: -25px;
+	background: url(img/button.png) no-repeat;
+	border: none;
+	width: 140px;
+	height: 43px;
+}
+
+.back-button:focus {
+	outline: none;
+}
+
+.head-text {
+	font-size: 14pt;
+}
+
+.lower-text {
+	font-size: 7pt;
+	margin: 0px;
+}
+
+.fiels-div {
+	min-width: 32%;
+	max-width: 32%;
+	display: inline-block;
+	margin-bottom: 3px;
+}
+
+.fiels-divErr {
+	min-width: 32%;
+	max-width: 32%;
+	padding-left: 3px;
+	border: 2px solid #0f0905; 
+	border-radius: 5px;
+	display: none;
+	background: #bb8b54;
+	position: absolute;
+}

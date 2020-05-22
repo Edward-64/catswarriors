@@ -1,0 +1,74 @@
+html {
+	height: 100%;
+	width: 100%;
+}
+
+body {
+	height: 100%;
+	width: 100%;
+	margin: 0px;
+	position: fixed;
+}
+
+#headloc {
+	position: relative;
+}
+
+#mouselistener {
+	height: 100%; width: 100%; position: absolute; z-index: 199;
+}
+
+#meowing {
+	width: 350px;
+	height: 40px;
+	position: absolute;
+	bottom: -5px;
+	z-index: 200;
+}
+
+.cat {
+	position: absolute;
+	bottom: 0px;
+	left: 0px;
+}
+
+.msg-on-cat-to-right {
+	margin-left: 100%;
+	margin-top: 3px;
+}
+
+.msg-on-cat {
+	margin-top: 3px;
+}
+
+.style-of-game {
+	background-color: #bb8b54;
+	border: 2px solid #0f0905;
+	border-radius: 5px;
+	padding: 3px;
+}
+
+.animation {
+	animation: listingframes 0.9s infinite;
+}
+
+@keyframes listingframes {
+	16% {
+	background: url('/img/players/1.svg');
+	}
+	32% {
+	background: url('/img/players/2.svg');
+	}
+	48% {
+	background: url('/img/players/3.svg');
+	}
+	64% {
+	background: url('/img/players/4.svg');
+	}
+	80% {
+	background: url('/img/players/5.svg');
+	}
+	96% {
+	background: url('/img/players/6.svg');
+	}
+}

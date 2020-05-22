@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Игра</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" href="css/styleGame.css">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+	<div id="sky" style="height: 50%; width: 100%; background: #97c0d9"></div>
+	<div id="nearloc" style="height: 10%; width: 100%; background: #9ca754"></div>
+	<div id="headloc" style="height: 40%; width: 100%; background: #788837">
+		<div id="mouselistener"></div>
+		<div id="meowing" class="style-of-game">
+			<form name="meowing" onsubmit="sendMeow(); return false;">
+				<input class="form" style="padding-left: 5px; width: 250px" name="meowing" autocomplete="off" placeholder="Пишите здесь">
+				<button class="form" type="button" onclick="sendMeow();">Мяукнуть</button>
+			</form>
+		</div>
+	</div>
+<script src="/js/play.js"></script>
+</body>
+</html>
