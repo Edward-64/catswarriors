@@ -297,10 +297,11 @@ function getBufferFile(res, path) {
 	});
 }
 
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
 	let path = req.url.match(/\/{1}[\w\d\.\/]*/i);
 	const c = existingCookie(req, false);
 
+	console.log(req.headers);
 	if (req.headers.upgrade === 'websocket') {
 		res.statusCode = 101;
 		res.setHeader('connection', 'upgrade');
@@ -396,9 +397,9 @@ http.createServer((req, res) => {
 }).listen(process.env.PORT || 8080, () => console.log('Server is running'));
 
 const WebSocket = require('ws'),
-        WebSocketServer = WebSocket.Server,
-        wss = new WebSocketServer({port: 8181}),
-        world = require('./databases/game.js'); //нужно сохранять периодически
+	WebSocketServer = WebSocket.Server,
+	wss = new WebSocketServer({ server }),
+      world = require('./databases/game.js'); //нужно сохранять периодически
   //      db = require('./databases/cats.js'),
 //        ch = require('./lib/cookie.js').include(db);
 
@@ -516,7 +517,7 @@ wss.on('connection', (ws) => {
 					cookie: decodeURI(m),
 				}
 			}
-                        pn = ch.existingCookie(freq, false);
+                        pn = existingCookie(freq, false);
                         let      g = World.findPlayer(pn);
                         if (!g.data) { //если он впервые заходит в игру, то этот скрипт запускается
                                 const cat = {
