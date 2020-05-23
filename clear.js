@@ -15,18 +15,23 @@ function generateCookie () {
 const dbclear = {
       info: {
             totalCats: 1,
-            admins: [1, 2],
+            admins: [1],
       },
       1: {
                   catName: 'Рыболов',
                   password: 'MIKIcatsKatya36',
                   gender: 1,
-                        alias: 'Котик Эдварда',
-                        devices: [],
-                        cookie: generateCookie(),
-                        dateOfReg: Date.now(),
-                        lastVisitOfSite: Date.now(),
-                        infractions: {},
+                  alias: 'Котик Эдварда',
+                  devices: [],
+                  cookie: generateCookie(),
+                  dateOfReg: Date.now(),
+                  lastVisitOfSite: Date.now(),
+                  infractions: {},
+                  game: {
+                                    health: 100,
+                                    lastPlace: [0, 30, 10, 1],
+                                    status: 'unactiv',
+                  }
       },
 }
 fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(dbclear), (err) => { console.log(err); });

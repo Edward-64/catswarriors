@@ -4,7 +4,7 @@ const http = require('http'),
 	fs = require('fs'),
 	formidable = require('formidable'),
 	db = require('./databases/cats.js'),
-	world = require('./databases/world.js'), //нужно сохранять периодически?
+	world = require('./databases/game.js'), //нужно сохранять периодически?
 	ch = require('./lib/cookie.js').include(db);
 
 function error500(res) {
@@ -151,6 +151,7 @@ function download(req, res, contentLength, path) {
 
 function checkCookie(type, res, answ) {
 	if (type === 'user') {
+//		res.statusCode = 200;
 		res.setHeader('content-type', 'application/json;charset=utf-8');
 		res.end(JSON.stringify(answ));
 	} else if (type === 'admin') {
@@ -228,13 +229,11 @@ function getBufferFile(res, path) {
 const server = http.createServer((req, res) => {
 	let path = req.url.match(/\/{1}[\w\d\.\/]*/i);
 
-	if (path) path = path[0]
-	else path = '/';
+	if (path) path = path[0] else path = '/';
 	if (/auth=undefined/.test(req.headers.cookie)) req.headers.cookie = ''
 	else req.headers.cookie = decodeURI(req.headers.cookie);
 
 	const c = ch.existingCookie(req.headers.cookie);
-	//Фиксируй последние визиты в бд
 
 	if (req.method === 'GET') {
 		console.log(req.url);
@@ -260,7 +259,7 @@ const server = http.createServer((req, res) => {
 				else getStaticFile(res, '/requires/error_play.html', 'text/html');
 				break;
 			case '/creating':
-				if (c > 0) {
+				if (c > 0) { //Фиксируй последние визиты в бд
 					checkCookie('user', res, {res: 0, alias: db[c].alias, password: db[c].password}); //нет
 				} else if (c < 0) {
 					checkCookie('user', res, {res: 2, catName: db[-c].catName}); //нет, предупреждение
@@ -270,11 +269,7 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/requires/load.html', 'text/html'); break;
 			case '/activ':
 				if (c <= 0) getBufferFile(res, '/requires/activ.html') //да
-				else checkCookie('user', res, {res: 2, catName: db[c].catName}); break; //уже активировпн
-			case '/img/textures/0.svg':
-				getStaticFile(res, '/img/textures/0.svg', 'image/svg+xml'); break;
-			case '/img/details/0.svg':
-				getStaticFile(res, '/img/details/0.svg', 'image/svg+xml'); break;
+				else checkCookie('user', res, {res: 2, catName: db[c].catName}); break; //уже активирован
 			case '/img/players/0.svg':
 				getStaticFile(res, '/img/players/0.svg', 'image/svg+xml'); break;
 			case '/img/players/1.svg':
@@ -329,6 +324,10 @@ const WebSocket = require('ws'),
 	clients = [],
 	cash = [];
 
+
+//      db = require('./databases/cats.js'),
+//      ch = require('./lib/cookie.js').include(db);
+
 function findClient(pn) {
         if (pn === undefined) return -1;
         let i = 0
@@ -339,6 +338,28 @@ function findClient(pn) {
         return -1;
 }
 
+class Location {
+        constructor(name, type, surface) {
+                this.name = name;
+                this.type = type; //например, лес или пустош
+                this.weather = 'sun';
+                this.fill = []; //котики, находящиеся на локации
+                //object {
+                //      chunk: [x, y],
+                //      type: 'куст',
+                //}
+                this.landscape = [];
+                this.surface = surface || '/textures/default.svg'; //текстура поля
+        }
+}
+
+//class World {
+  //      constructor() { };
+    //    static changeWeather(change, ...l) {
+      //          for(let i = 0; i < l.length; i++) {
+        //                l[i].weather = change;
+          //      }
+        }
 function findPlayer(pn) {
 	if (pn === undefined) return -1;
 

@@ -1,3 +1,4 @@
+'use strict'
 const HOST = location.origin.replace(/^http/, 'ws'),
 	ws = new WebSocket(HOST),
 	place = document.getElementById('headloc'),
@@ -9,7 +10,6 @@ const HOST = location.origin.replace(/^http/, 'ws'),
 			name: undefined,
 			chunk: [],
 			orient: undefined, //0 лево, 1 право
-			time: [],
 		},
 	}, headloc = document.querySelector('#headloc');
 let   x = Math.round(headloc.clientWidth / 160),
@@ -54,7 +54,9 @@ function addMeow(pn, msg) {
 	let	catMsg = document.getElementById(`cat${pn}`).childNodes[0], maxMsg = 4;
 	const	newMsg = document.createElement('div'), catWidth = `${265}px`,
 		pic = document.getElementById(`cat${pn}`).childNodes[1].childNodes[0];
-	msg = msg.slice(0, 200); if (msg.length > 60) { maxMsg = 1; }
+	if (msg.length > 200) {
+		msg = msg.slice(0, 200) + ' ...';  maxMsg = 0;
+	} if (msg.length > 60) { maxMsg = 1; }
 	catMsg.style.width = catWidth; if (CATS[pn].orient) catMsg.style.textAlign = 'right';
 	if (catMsg.childNodes.length > maxMsg) {
 		catMsg.childNodes[0].remove();
@@ -159,6 +161,17 @@ ws.onopen = (e) => {
 					}
 					addCat(data.loc.fill[j].pn, [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1]]);
 				}
+				place.style.background = `url('${data.loc.surface}')`;
+				for(let j = 0; j < data.loc.landscape.length; j++) {
+					const newdetail = document.createElement('img');
+					newdetail.src = data.loc.landscape[j].texture;
+					newdetail.width = data.loc.landscape[j].width;
+					newdetail.heidht = data.loc.landscape[j].heidht;
+					newdetail.style.position = 'absolute';
+					newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
+					newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
+					place.appendChild(newdetail);
+				}
 			} else if (data.type === 2) {
 				CATS[0].pn = data.pn;
 				CATS[0].name = data.name;
@@ -170,8 +183,7 @@ ws.onopen = (e) => {
 
 		mouselistener.onmousedown = (e) => {
 			const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight;
-			chunk = serveChunk([e.pageX, e.pageY - excess]);
-			animation(0, chunk, CATS[0].chunk, CATS[0].speed || 50);
+			animation(0, serveChunk([e.pageX, e.pageY - excess]), CATS[0].chunk, CATS[0].speed || 50);
 		}
 	}
 }
