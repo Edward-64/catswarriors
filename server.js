@@ -226,15 +226,20 @@ function getBufferFile(res, path) {
 }
 
 const server = http.createServer((req, res) => {
-	let path = req.url.match(/\/{1}[\w\d\.\/]*/i);
-
-	if (path) path = path[0]
-	else path = '/';
-	if (/auth=undefined/.test(req.headers.cookie)) req.headers.cookie = ''
-	else req.headers.cookie = decodeURI(req.headers.cookie);
+	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = undefined;
+	if (path) {
+		path = path[0];
+		if (path.startsWith('/img/')) {
+			n = path.match(/\d+/);
+			if (n) {
+				n = n[0];
+				path = path.replace(/\d+.*/, '')
+			} else path = '/';
+		}
+	} else path = '/';
 
 	const c = ch.existingCookie(req.headers.cookie);
-	//Фиксируй последние визиты в бд
+	if (c > 0) db[c].lastVisitOfSite = Date.now();
 
 	if (req.method === 'GET') {
 		console.log(req.url);
@@ -271,24 +276,14 @@ const server = http.createServer((req, res) => {
 			case '/activ':
 				if (c <= 0) getBufferFile(res, '/requires/activ.html') //да
 				else checkCookie('user', res, {res: 2, catName: db[c].catName}); break; //уже активировпн
-			case '/img/textures/0.svg':
-				getStaticFile(res, '/img/textures/0.svg', 'image/svg+xml'); break;
-			case '/img/details/0.svg':
-				getStaticFile(res, '/img/details/0.svg', 'image/svg+xml'); break;
-			case '/img/players/0.svg':
-				getStaticFile(res, '/img/players/0.svg', 'image/svg+xml'); break;
-			case '/img/players/1.svg':
-				getStaticFile(res, '/img/players/1.svg', 'image/svg+xml'); break;
-			case '/img/players/2.svg':
-				getStaticFile(res, '/img/players/2.svg', 'image/svg+xml'); break;
-			case '/img/players/3.svg':
-				getStaticFile(res, '/img/players/3.svg', 'image/svg+xml'); break;
-			case '/img/players/4.svg':
-				getStaticFile(res, '/img/players/4.svg', 'image/svg+xml'); break;
-			case '/img/players/5.svg':
-				getStaticFile(res, '/img/players/5.svg', 'image/svg+xml'); break;
-			case '/img/players/6.svg':
-				getStaticFile(res, '/img/players/6.svg', 'image/svg+xml'); break;
+			case '/img/textures/':
+				getStaticFile(res, `/img/textures/${n}.svg`, 'image/svg+xml'); break;
+			case '/img/details/':
+				getStaticFile(res, `/img/details/${n}.svg`, 'image/svg+xml'); break;
+			//на сервере фактический адрес должен быть /img/players/[pn игрока]/0.svg...1.svg...2.svg и т.д.
+			//на всякий случай проверь c > 0
+			case '/img/players/': //!!!
+				getStaticFile(res, `/img/players/${n}.svg`, 'image/svg+xml'); break;
 			case '/css/img/button.png':
 				getStaticFile(res, '/css/img/button.png', 'image/png'); break;
 			case '/css/img/lowMsg.png':
