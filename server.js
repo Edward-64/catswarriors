@@ -102,6 +102,8 @@ function createCharacter(rawData, req, res) {
 					servInfractions: {},
 					game: {
 						health: 100,
+						moons: 0,
+						speed: 50,
 						lastPlace: [0, 30, 10, 1],
 						status: 'unactiv',
 					}
@@ -238,7 +240,7 @@ const server = http.createServer((req, res) => {
 		}
 	} else path = '/';
 
-	const c = ch.existingCookie(req.headers.cookie);
+	const c = ch.existingCookie(req.headers.cookie || '');
 	if (c > 0) db[c].lastVisitOfSite = Date.now();
 
 	if (req.method === 'GET') {
@@ -322,7 +324,7 @@ const server = http.createServer((req, res) => {
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
 	clients = [],
-	cash = [];
+	cash = {};
 
 function findClient(pn) {
         if (pn === undefined) return -1;
@@ -337,12 +339,12 @@ function findClient(pn) {
 function findPlayer(pn) {
 	if (pn === undefined) return -1;
 
-      const tmpfp = findClient(pn) != -1 ? clients[findClient(pn)].loc : false,
+      const tmpfp = findClient(pn) != -1 ? '' + clients[findClient(pn)].loc : false,
             place = tmpfp || db[pn].game.lastPlace[0];
       let i = null, p = null;
 
-      if (world.nosort[place]) {
-      	const w = world.nosort[place].fill;
+      if (world.nosort[place].public) {
+      	const w = world.nosort[place].public.fill;
             let i = 0;
             for(; i < w.length; i++) {
             	if (w[i].pn === pn) break;
@@ -356,7 +358,7 @@ function findPlayer(pn) {
 function wsSend(type, data, socket) {
         if (type == 6) {
                 for(let j = 0; j < clients.length; j++) {
-                        if (clients[j].loc === data[0].place) clients[j].ws.send(JSON.stringify({
+                        if (clients[j].loc == data[0].place) clients[j].ws.send(JSON.stringify({
                                 type: 6,
                                 pn: data[0].data.pn,
                                 msg: data[1],
@@ -364,7 +366,7 @@ function wsSend(type, data, socket) {
                 }
         } else if (type == 5) {
                 for(let j = 0; j < clients.length; j++) {
-                        if (clients[j].loc === data[0].place) clients[j].ws.send(JSON.stringify({
+                        if (clients[j].loc == data[0].place) clients[j].ws.send(JSON.stringify({
                                 type: 5,
                                 pn: data[0].data.pn,
                                 chunk: data[1],
@@ -372,21 +374,29 @@ function wsSend(type, data, socket) {
                 }
         } else if (type == 4) {
                 for(let j = 0; j < clients.length; j++) {
-                  if (clients[j].loc === data.place) clients[j].ws.send(JSON.stringify({
+                  if (clients[j].loc == data.place) clients[j].ws.send(JSON.stringify({
                         type: 4,
-                                cat: {
-                                        pn: data.data.pn,
-                                        name: data.data.name,
-                                        chunk: data.data.chunk,
-                                }
+				cat: data.data,
                   }));
             }
         } else if (type == 3) {
                 socket.send(JSON.stringify({
                         type: 3,
-                        loc: world.nosort[data.place],
+                        loc: world.nosort[data.place].public,
                 }));
-        } else if (type == 2) {
+        } else if (type == 7) {
+		    socket.send(JSON.stringify({
+				type: 7,
+				chunk: data,
+		    }));
+        } else if (type == 8) {
+                for(let j = 0; j < clients.length; j++) {
+                        if (clients[j].loc == data.place) clients[j].ws.send(JSON.stringify({
+                                type: 8,
+                                pn: data.data.pn,
+                        }));
+		    }
+	  } else if (type == 2) {
                 socket.send(JSON.stringify({
                         type: 2,
                         pn: data.pn,
@@ -397,29 +407,36 @@ function wsSend(type, data, socket) {
 }
 
 wss.on('connection', (ws) => {
-        let pn = undefined;
+        let pn = undefined, g = undefined, control = undefined;
 
         ws.on('message', (m) => {
-                const   msg = JSON.parse(m);
+                const msg = JSON.parse(m);
 
                 if (msg.type == 102) {
                         pn = ch.existingCookie(decodeURI(m), false);
-                        let g = findPlayer(pn);
+                        g = findPlayer(pn);
                         if (!g.data) { //если он впервые заходит в игру, то этот скрипт запускается
                                 const cat = {
                                                 status: 'activ',
+								health: db[pn].game.health,
+								moons: db[pn].game.moons,
+								speed: db[pn].game.speed,
                                                 pn: pn,
                                                 name: db[pn].catName,
                                                 //в БД 0 - локация, 1 - х, 2 - у, 3 - ориентация
                                                 //в игре 0 - х, 1 - у, 2 - ориентация
                                                 chunk: [db[pn].game.lastPlace[1], db[pn].game.lastPlace[2], db[pn].game.lastPlace[3]],
                                         };
-                                world.nosort[g.place].fill.push(cat);
+                                world.nosort[g.place].public.fill.push(cat);
                                 g = findPlayer(pn);
                         } else if (g.data.status === 'unactiv' || /sleep/.test(g.data.status)) {
                                 g.data.status = 'activ';
                         }
-                        clients.push({pn: pn, ws: ws, loc: g.place});
+
+				const exc = findClient(pn);
+                        if (exc == -1) clients.push({pn: pn, ws: ws, loc: g.place})
+				else clients[exc].ws = ws;
+
                         const socket = clients[findClient(pn)].ws;
                         if (socket.readyState === WebSocket.OPEN) {
                                 wsSend(2, g.data, socket);
@@ -427,33 +444,57 @@ wss.on('connection', (ws) => {
                                 wsSend(4, g);
                         }
                 } else if (msg.type == 103) {
-                        const g = findPlayer(pn);
-                        setTimeout(() => { g.data.chunk = msg.value; }, msg.s);
+                        clearTimeout(control);
+                        g = findPlayer(pn);
+
                         wsSend(5, [g, msg.value]);
+
+				const dis = Math.round(Math.sqrt(Math.pow(msg.value[0] - g.data.chunk[0], 2) +
+						Math.pow(msg.value[1] - g.data.chunk[1], 2) + 0.6)) * g.data.speed;
+				control = setTimeout(() => {
+                              g.data.chunk = msg.value;
+           				const p =  world.nosort[g.place].paths;
+           				for(let j = 0; j < p.length; j++) {
+           					if (p[j].minChunk[0] <= g.data.chunk[0] && p[j].maxChunk[0] >= g.data.chunk[0] &&
+           					p[j].minChunk[1] <= g.data.chunk[1] && p[j].maxChunk[1] >= g.data.chunk[1]) {
+							const fc = clients[findClient(pn)].ws;
+                                          wsSend(7, p[j].toC, fc);
+							wsSend(8, g);
+							for(let i = 0; i < world.nosort[g.place].public.fill.length; i++) {
+								if (world.nosort[g.place].public.fill[i].pn == g.data.pn) {
+									world.nosort[g.place].public.fill.splice(i, 1);
+									clients[findClient(pn)].loc = p[j].to;
+									g.place = p[j].to;
+									g.data.chunk[0] = p[j].toC[0];
+									g.data.chunk[1] = p[j].toC[1];
+									world.nosort[p[j].to].public.fill.push(g.data);
+									break;
+								}
+							}
+							wsSend(3, g, fc);
+							wsSend(4, g);
+                                          break;
+           					}
+           				}
+                        }, dis);
                 } else if (msg.type = 104) {
                         wsSend(6, [findPlayer(pn), msg.value]);
                 }
         });
         ws.on('close', () => {
-                const s = findClient(pn),
-                        g = findPlayer(pn);
-
-                if (pn != -1 && g != -1) {
-                        cash.push(g);
-                        clients.splice(s, 1);
-                        g.data.status = 'unactiv'; //отправить всем игрокам: статус изменился
-                }
+			g = findPlayer(pn);
+			cash[g.data.pn] = g;
         });
 });
 
 setInterval(() => {
         for(let i = 0; i < world.nosort.length; i++) {
-                for(let j = 0; j < world.nosort[i].fill.length; j++) {
-                        db[world.nosort[i].fill[j].pn].game.lastPlace = [
+                for(let j = 0; j < world.nosort[i].public.fill.length; j++) {
+                        db[world.nosort[i].public.fill[j].pn].game.lastPlace = [
                                 i,
-                                world.nosort[i].fill[j].chunk[0],
-                                world.nosort[i].fill[j].chunk[1],
-                                world.nosort[i].fill[j].chunk[2]
+                                world.nosort[i].public.fill[j].chunk[0],
+                                world.nosort[i].public.fill[j].chunk[1],
+                                world.nosort[i].public.fill[j].chunk[2],
                         ];
                 }
         }

@@ -4,6 +4,8 @@ const HOST = location.origin.replace(/^http/, 'ws'),
 	place = document.getElementById('headloc'),
 	mouselistener = document.getElementById('mouselistener'),
 	gameplace = document.getElementById('place'),
+	details = document.getElementById('details'),
+	cats = document.getElementById('cats'),
 	CATS = {
 		0: {
 			pn: undefined,
@@ -26,7 +28,7 @@ meowing.style.left = `${headloc.clientWidth * 0.5 - document.querySelector('#meo
 
 function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)';
-	if (CATS[pn].orient) scale = 'scale(1)';
+	if (chunk[2]) scale = 'scale(1)';
 	div.innerHTML = `<div></div><div style="background: url('img/players/0.svg') no-repeat;` +
 	` transform:${scale}; width: 265px; height: 120px;"><img src="/css/img/lowMsg.png" style="position: absolute; top: -2px; right: 0px; display: none"></div>`;
 	div.classList.add('cat');
@@ -34,7 +36,7 @@ function addCat(pn, chunk) {
 	div.style.left = `${chunk[0] * x}px`;
 	div.style.bottom = `${chunk[1] * y}px`;
 	div.style.zIndex = 100 - chunk[1];
-	place.appendChild(div);
+	cats.appendChild(div);
 }
 
 function serveChunk(crd) {
@@ -45,7 +47,7 @@ function serveChunk(crd) {
 
 function updateChunk(s) {
 	if (ws.readyState === WebSocket.OPEN) {
-		ws.send(JSON.stringify({type: 103, value: [Math.floor(CATS[0].chunk[0]), Math.floor(CATS[0].chunk[1]), CATS[0].orient], s: s, }));
+		ws.send(JSON.stringify({type: 103, value: [Math.floor(CATS[0].chunk[0]), Math.floor(CATS[0].chunk[1]), CATS[0].orient]}));
 	}
 }
 
@@ -92,6 +94,7 @@ function animation(pn, newchunk, oldchunk, SPEED) {
 //		cat.childNodes[1].classList.remove('animation');
 //		return;
 //	}
+	if (!cat) return;
 	if (stepX  < 0) {
             cat.childNodes[1].style.transform = 'scale(-1, 1)'
             widthCat = 70; CATS[pn].orient = 0;
@@ -100,7 +103,7 @@ function animation(pn, newchunk, oldchunk, SPEED) {
             cat.childNodes[1].style.transform = 'scale(1)';
 		CATS[pn].orient = 1; document.getElementById(`cat${pn}`).childNodes[0].style.textAlign = 'right';
       }
-	if (pn == 0) { CATS[0].chunk = newchunk; updateChunk(dis); CATS[0].chunk = oldchunk; }
+	if (pn == 0) { CATS[0].chunk = newchunk; updateChunk(); CATS[0].chunk = oldchunk; }
 	cat.style.animationPlayState = 'running';
 	for(let i = 0; i < dis; i+=SPEED) {
 		const control = setTimeout(() => {
@@ -114,7 +117,7 @@ function animation(pn, newchunk, oldchunk, SPEED) {
 	cat.style.transition = `left ${dis}ms cubic-bezier(0.25, 0.1, 1.0, 1.0), bottom ${dis}ms cubic-bezier(0.25, 0.1, 1.0, 1.0)`;
 	cat.style.left = `${newchunk[0] * x - widthCat}px`;
 	cat.style.bottom = `${newchunk[1] * y}px`;
-	if (oldchunk[0] != newchunk[0] && oldchunk[1]!= newchunk[1]) cat.childNodes[1].classList.add('animation'); 
+	if (oldchunk[0] != newchunk[0] && oldchunk[1]!= newchunk[1]) cat.childNodes[1].classList.add('animation');
 	cat.ontransitionend = () => {
 		cat.childNodes[1].classList.remove('animation');
 		cat.style.animationPlayState = 'paused';
@@ -147,10 +150,8 @@ ws.onopen = (e) => {
                                     chunk: [data.cat.chunk[0], data.cat.chunk[1]],
 						orient: data.cat.chunk[2],
                               }
-					addCat(data.cat.pn, [data.cat.chunk[0], data.cat.chunk[1]]);
+					addCat(data.cat.pn, [data.cat.chunk[0], data.cat.chunk[1], data.cat.chunk[2]]);
 				}
-			} if (data.type === 'catout') {
-				//из локации вышел котик
 			} else if (data.type == 3) {
 				for(let j = 0; j < data.loc.fill.length; j++) {
 					if (data.loc.fill[j].pn === CATS[0].pn) continue;
@@ -159,31 +160,46 @@ ws.onopen = (e) => {
 						chunk: [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1]],
 						orient: data.loc.fill[j].chunk[2],
 					}
-					addCat(data.loc.fill[j].pn, [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1]]);
+					addCat(data.loc.fill[j].pn, [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1], data.loc.fill[j].chunk[2]]);
 				}
 				place.style.background = `url('${data.loc.surface}')`;
 				for(let j = 0; j < data.loc.landscape.length; j++) {
 					const newdetail = document.createElement('img');
 					newdetail.src = data.loc.landscape[j].texture;
 					newdetail.width = data.loc.landscape[j].width;
-					newdetail.heidht = data.loc.landscape[j].heidht;
+					newdetail.height = data.loc.landscape[j].height;
 					newdetail.style.position = 'absolute';
+					newdetail.style.zIndex = 100 - data.loc.landscape[j].chunk[1];
 					newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
 					newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
-					place.appendChild(newdetail);
+					details.appendChild(newdetail);
 				}
-			} else if (data.type === 2) {
+			} else if (data.type == 7) {
+				cats.innerHTML = ''; details.innerHTML = '';
+				for(let cat in CATS) {
+					if (cat == 0) continue;
+					delete CATS[cat];
+				} console.log(data);
+				addCat(0, data.chunk);
+				CATS[0].chunk = [data.chunk[0], data.chunk[1]];
+			} else if (data.type == 8) {
+				if (data.pn != CATS[0].pn) {
+					document.getElementById(`cat${data.pn}`).remove();
+					delete CATS[data.pn];
+				}
+			}else if (data.type == 2) {
 				CATS[0].pn = data.pn;
 				CATS[0].name = data.name;
 				CATS[0].chunk = [data.chunk[0], data.chunk[1]];
 				CATS[0].orient = data.chunk[2];
-				addCat(0, CATS[0].chunk);
+				addCat(0, data.chunk);
 			}
 		}
 
 		mouselistener.onmousedown = (e) => {
-			const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight;
-			animation(0, serveChunk([e.pageX, e.pageY - excess]), CATS[0].chunk, CATS[0].speed || 50);
+			const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight,
+			chunk = serveChunk([e.pageX, e.pageY - excess]);
+			animation(0, chunk, CATS[0].chunk, CATS[0].speed || 50);
 		}
 	}
 }
