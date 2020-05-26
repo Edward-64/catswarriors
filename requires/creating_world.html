@@ -1,0 +1,22 @@
+<button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
+<button class="form cr-w-button" type="button" onclick="createNewLocation();">Создать новую локацию</button>
+<button class="form cr-w-button" type="button" onclick="editExsisLocation();">Изменить существующую локацию</button>
+<div id="createNewLocation" style="display: none">
+	<div class="cl-h-div">
+		<div class="cl-i-div">
+			<p>Добавление объекта</p>
+			<button id="bleft" class="arrow-button an-l-arr" onclick="listingObjects(-1);"></button>
+			<div class="cl-i-div-lower">
+				<object id="obj" type="image/svg+xml" data="/img/details/0.svg">Ваш браузер не поддерживает SVG</object>
+			</div>
+			<button id="bright" class="arrow-button an-r-arr" style="transform: scale(-1);" onclick="listingObjects(1);"></button>
+		</div>
+		<div class="cl-i-div"></div>
+	</div>
+	<div class="cl-h-div">
+
+	</div>
+</div>
+<div id="editExsisLocation" style="display: none">
+
+</div>

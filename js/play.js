@@ -1,6 +1,5 @@
 'use strict'
 const HOST = location.origin.replace(/^http/, 'ws'),
-	ws = new WebSocket(HOST),
 	place = document.getElementById('headloc'),
 	mouselistener = document.getElementById('mouselistener'),
 	gameplace = document.getElementById('place'),
@@ -15,7 +14,8 @@ const HOST = location.origin.replace(/^http/, 'ws'),
 		},
 	}, headloc = document.querySelector('#headloc');
 let   x = Math.round(headloc.clientWidth / 160),
-	y = Math.round(headloc.clientHeight / 30);
+	y = Math.round(headloc.clientHeight / 30),
+	ws = new WebSocket(HOST);
 
 window.onresize = () => {
 	x = Math.round(headloc.clientWidth / 160);
@@ -25,6 +25,26 @@ window.onresize = () => {
 const meowing = document.getElementById('meowing');
 meowing.style.left = `${headloc.clientWidth * 0.5 - document.querySelector('#meowing').clientWidth / 2}px`
 
+let counter = 0;
+function reconnect() {
+	console.log('пытаюсь проснуться...');
+	counter += 10000;
+	if (counter > 60000) {
+		console.log('проснуться не удалось')
+		counter = 0;
+		return;
+	}
+	console.log(ws.readyState);
+	try {
+		ws = new WebSocket(HOST);
+		ws.send(JSON.stringify({type: 102, token: document.cookie}));
+		ws.onclose = () => {
+			setTimeout(reconnect, 10000);
+		}
+	} catch (err) {
+		setTimeout(reconnect, 10000);
+	}
+}
 
 function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)';
@@ -126,80 +146,86 @@ function animation(pn, newchunk, oldchunk, SPEED) {
 
 ws.onopen = (e) => {
 	console.log('connected!');
+	ws.send(JSON.stringify({type: 102, token: document.cookie}));
+}
 
+ws.onmessage = (e) => {
 	if (ws.readyState === WebSocket.OPEN) {
-		ws.send(JSON.stringify({type: 102, token: document.cookie}));
-		ws.onmessage = (e) => {
-			const data = JSON.parse(e.data);
-			if (data.type == 6) {
-				if(data.pn != CATS[0].pn) addMeow(data.pn, data.msg);
-			} else if (data.type == 5) {
-				if (data.pn != CATS[0].pn) animation(data.pn, data.chunk, CATS[data.pn].chunk, data.speed || 50);
-			} else if (data.type == 4) {
-				let checkAdd = true;
-				for(let cat in CATS) {
-					if (!CATS.hasOwnProperty(cat)) continue;
-					if (data.cat.pn == CATS[0].pn || data.cat.pn == cat) {
-						checkAdd = false;
-						break;
-					}
+		const data = JSON.parse(e.data);
+		if (data.type == 6) {
+			if(data.pn != CATS[0].pn) addMeow(data.pn, data.msg);
+		} else if (data.type == 5) {
+			if (data.pn != CATS[0].pn) animation(data.pn, data.chunk, CATS[data.pn].chunk, data.speed || 50);
+		} else if (data.type == 4) {
+			let checkAdd = true;
+			for(let cat in CATS) {
+				if (!CATS.hasOwnProperty(cat)) continue;
+				if (data.cat.pn == CATS[0].pn || data.cat.pn == cat) {
+					checkAdd = false;
+					break;
 				}
-				if (checkAdd) {
-					CATS[data.cat.pn] = {
-                                    name: data.cat.name,
-                                    chunk: [data.cat.chunk[0], data.cat.chunk[1]],
-						orient: data.cat.chunk[2],
-                              }
-					addCat(data.cat.pn, [data.cat.chunk[0], data.cat.chunk[1], data.cat.chunk[2]]);
-				}
-			} else if (data.type == 3) {
-				for(let j = 0; j < data.loc.fill.length; j++) {
-					if (data.loc.fill[j].pn === CATS[0].pn) continue;
-					CATS[data.loc.fill[j].pn] = {
-						name: data.loc.fill[j].name,
-						chunk: [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1]],
-						orient: data.loc.fill[j].chunk[2],
-					}
-					addCat(data.loc.fill[j].pn, [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1], data.loc.fill[j].chunk[2]]);
-				}
-				place.style.background = `url('${data.loc.surface}')`;
-				for(let j = 0; j < data.loc.landscape.length; j++) {
-					const newdetail = document.createElement('img');
-					newdetail.src = data.loc.landscape[j].texture;
-					newdetail.width = data.loc.landscape[j].width;
-					newdetail.height = data.loc.landscape[j].height;
-					newdetail.style.position = 'absolute';
-					newdetail.style.zIndex = 100 - data.loc.landscape[j].chunk[1];
-					newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
-					newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
-					details.appendChild(newdetail);
-				}
-			} else if (data.type == 7) {
-				cats.innerHTML = ''; details.innerHTML = '';
-				for(let cat in CATS) {
-					if (cat == 0) continue;
-					delete CATS[cat];
-				} console.log(data);
-				addCat(0, data.chunk);
-				CATS[0].chunk = [data.chunk[0], data.chunk[1]];
-			} else if (data.type == 8) {
-				if (data.pn != CATS[0].pn) {
-					document.getElementById(`cat${data.pn}`).remove();
-					delete CATS[data.pn];
-				}
-			}else if (data.type == 2) {
-				CATS[0].pn = data.pn;
-				CATS[0].name = data.name;
-				CATS[0].chunk = [data.chunk[0], data.chunk[1]];
-				CATS[0].orient = data.chunk[2];
-				addCat(0, data.chunk);
 			}
-		}
-
-		mouselistener.onmousedown = (e) => {
-			const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight,
-			chunk = serveChunk([e.pageX, e.pageY - excess]);
-			animation(0, chunk, CATS[0].chunk, CATS[0].speed || 50);
+			if (checkAdd) {
+				CATS[data.cat.pn] = {
+                  		name: data.cat.name,
+                       		chunk: [data.cat.chunk[0], data.cat.chunk[1]],
+					orient: data.cat.chunk[2],
+      	            }
+				addCat(data.cat.pn, [data.cat.chunk[0], data.cat.chunk[1], data.cat.chunk[2]]);
+			}
+		} else if (data.type == 3) {
+			for(let j = 0; j < data.loc.fill.length; j++) {
+			if (data.loc.fill[j].pn === CATS[0].pn) continue;
+				CATS[data.loc.fill[j].pn] = {
+					name: data.loc.fill[j].name,
+					chunk: [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1]],
+					orient: data.loc.fill[j].chunk[2],
+				}
+				addCat(data.loc.fill[j].pn, [data.loc.fill[j].chunk[0], data.loc.fill[j].chunk[1], data.loc.fill[j].chunk[2]]);
+			}
+			place.style.background = `url('${data.loc.surface}')`;
+			for(let j = 0; j < data.loc.landscape.length; j++) {
+				const newdetail = document.createElement('img');
+				newdetail.src = data.loc.landscape[j].texture;
+				newdetail.width = data.loc.landscape[j].width;
+				newdetail.height = data.loc.landscape[j].height;
+				newdetail.style.position = 'absolute';
+				newdetail.style.zIndex = 100 - data.loc.landscape[j].chunk[1];
+				newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
+				newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
+				details.appendChild(newdetail);
+			}
+		} else if (data.type == 7) {
+			cats.innerHTML = ''; details.innerHTML = '';
+			for(let cat in CATS) {
+				if (cat == 0) continue;
+				delete CATS[cat];
+			} console.log(data);
+			addCat(0, data.chunk);
+			CATS[0].chunk = [data.chunk[0], data.chunk[1]];
+		} else if (data.type == 8) {
+			if (data.pn != CATS[0].pn) {
+				document.getElementById(`cat${data.pn}`).remove();
+				delete CATS[data.pn];
+			}
+		} else if (data.type == 2) {
+			CATS[0].pn = data.pn;
+			CATS[0].name = data.name;
+			CATS[0].chunk = [data.chunk[0], data.chunk[1]];
+			CATS[0].orient = data.chunk[2];
+			addCat(0, data.chunk);
 		}
 	}
+}
+
+
+mouselistener.onmousedown = (e) => {
+	const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight,
+	chunk = serveChunk([e.pageX, e.pageY - excess]);
+	animation(0, chunk, CATS[0].chunk, CATS[0].speed || 50);
+}
+
+ws.onclose = () => {
+	console.log('соединение закрылось');
+	reconnect();
 }

@@ -1,12 +1,9 @@
 const req = new XMLHttpRequest(),
 oldWindow = {
 	content: document.getElementById('require').innerHTML,
-	containerWidth: document.querySelector('#container').clientWidth,
-	containerHeight: document.querySelector('#container').clientHeight,
-	coverWidth: document.querySelector('#cover').clientWidth,
-	coverHeight: document.querySelector('#cover').clientHeight,
-	lowerCoverWidth: document.querySelector('#lower-cover').clientWidth,
-	lowerCoverHeight: document.querySelector('#lower-cover').clientHeight,
+	widthHight: 640,
+	width: 620,
+	minHeight: 360,
 },
 user = {
 	alias: undefined,
@@ -150,6 +147,7 @@ function sendRequire() {
 	} else if (require.toLowerCase() === 'и' || /играть/i.test(require)) {
 		window.location='/play';
 	} else if (require.toLowerCase() === 'сп' || /создать персонажа/i.test(require)) {
+		resizeWindow(0, -80);
 		req.open('GET', '/creating', true);
 		req.send();
 		req.onload = () => {
@@ -170,7 +168,6 @@ function sendRequire() {
 						`будет заблокирован и нового создать Вы не сможете. Чтобы создать нового персонажа, нужно удалить старого.</span>`;
 					} else if (res.res == 1) {
 						windowReq.innerHTML = res.data;
-						generateWindow(1.05);
 					}
 			}
 		}
@@ -181,6 +178,7 @@ function sendRequire() {
                 windowErr.textContent = 'Персонаж деактивирован';
 		setTimeout(()=> {window.location.reload()}, 2000);
 	} else if (require.toLowerCase() === 'ап' || /активировать|активация|вход|войти/i.test(require)) {
+		resizeWindow(-160, -100);
 		req.open('GET', '/activ', true);
 		req.send();
 		req.onload = () => {
@@ -193,7 +191,6 @@ function sendRequire() {
 				windowErr.innerHTML = `Ваш персонаж по имени ${res.catName} уже активирован`;
 			} else if (res.res == 1) {
                        		document.getElementById('require').innerHTML = res.data;
-                        	generateWindow(1.3);
                    	}
 		}
 	} else {
@@ -202,7 +199,7 @@ function sendRequire() {
 			const res = JSON.parse(req.responseText);
 			if (res.res == 1) {
 				document.getElementById('require').innerHTML = res.data;
-				generateWindow(1.5);
+				resizeWindow(res.add[0], res.add[1]);
 			} else if (res.res == 2) {
 				windowErr.style.display = 'block';
 				windowErr.textContent = 'Вы не можете это сделать';
@@ -219,29 +216,58 @@ function sendRequire() {
 
 function backRequire() {
 	document.getElementById('require').innerHTML = oldWindow.content;
-	document.getElementById('container').style.width = `${oldWindow.containerWidth}px`;
-	document.getElementById('container').style.height = `${oldWindow.containerHeight}px`;
-	document.getElementById('cover').style.width = `${oldWindow.coverWidth}px`;
-        document.getElementById('cover').style.height = `${oldWindow.coverHeight}px`;
-	document.getElementById('lower-cover').style.width = `${oldWindow.lowerCoverWidth}px`;
-        document.getElementById('lower-cover').style.height = `${oldWindow.lowerCoverHeight}px`;
-	document.getElementById('lower-cover').style.bottom = `${oldWindow.containerHeight - 10}px`;
+	resizeWindow(0, 0);
 }
 
-function generateWindow(divider) {
-	const getContainerData = document.querySelector('#container'),
-	setContainerData = document.getElementById('container').style,
-	getLowerCoverData = document.querySelector('#lower-cover'),
-	setLowerCoverData = document.getElementById('lower-cover').style,
-	getCoverData = document.querySelector('#cover'),
-	setCoverData = document.getElementById('cover').style,
-	bottom = (getContainerData.clientHeight - 10) / divider;
+function resizeWindow(w, h) {
+	document.getElementById('container').style.width = `${oldWindow.widthHight + w}px`;
+	document.getElementById('lower-cover').style.width = `${oldWindow.width + w}px`;
+	document.getElementById('cover').style.width = `${oldWindow.widthHight + w}px`;
 
-	setLowerCoverData.bottom = `${bottom}px`;
-	setContainerData.width = `${getContainerData.clientWidth / divider}px`;
-	setContainerData.height = `${getContainerData.clientHeight / divider}px`;
-	setLowerCoverData.width = `${getLowerCoverData.clientWidth / divider}px`;
-	setLowerCoverData.height = `${getLowerCoverData.clientHeight / divider}px`;
-	setCoverData.width = `${getCoverData.clientWidth / divider}px`;
-	setCoverData.height = `${getCoverData.clientHeight / divider}px`;
+	document.getElementById('container').style.minHeight = `${oldWindow.minHeight + h}px`;
+	document.getElementById('lower-cover').style.minHeight = `${oldWindow.minHeight + h}px`;
+	document.getElementById('cover').style.minHeight = `${oldWindow.minHeight + h}px`;
 }
+
+function createNewLocation() {
+	resizeWindow(200, 0); document.getElementsByTagName('button')[1].style.backgroundColor = '#976b3c';
+	document.getElementsByTagName('button')[2].style.backgroundColor = '#bb8b54';
+	document.getElementById('editExsisLocation').style.display = 'none';
+	document.getElementById('bleft').style.background = `url('css/img/lightarrow.svg') no-repeat`;
+	const create = document.getElementById('createNewLocation');
+
+	create.style.display = 'block';
+
+}
+
+function editExsisLocation() {
+	resizeWindow(200, 0); document.getElementsByTagName('button')[2].style.backgroundColor = '#976b3c';
+	document.getElementsByTagName('button')[1].style.backgroundColor = '#bb8b54';
+	document.getElementById('createNewLocation').style.display = 'none';
+	const edit = document.getElementById('editExsisLocation');
+
+	edit.style.display = 'block';
+
+}
+
+/*
+let nextObj = 0;
+function listingObjects(plus) {
+	const lb = document.getElementById('bleft'),
+		rb = document.getElementById('bright'),
+		pobj = document.getElementById('obj'),
+		maxObj = objectsdb.length - 1;
+
+	nextObj += plus;
+
+	if (nextObj < 0) { nextObj = 0 } else { if (nextObj > maxObj) nextObj = maxObj; }
+	if (nextObj == 0) lb.style.background = `url('css/img/lightarrow.svg') center no-repeat`
+	else lb.style.background = `url('css/img/arrow.svg') center no-repeat`;
+	if (nextObj == maxObj) rb.style.background = `url('css/img/lightarrow.svg') center no-repeat`;
+	else rb.style.background = `url('css/img/arrow.svg') center no-repeat`;
+	if (plus < 0) { lb.style.right = '10px'; setTimeout(() => lb.style.right = '0px', 500); }
+	if (plus > 0) { rb.style.left = '10px'; setTimeout(() => rb.style.left = '0px', 500); }
+
+	pobj.src = objectsdb[nextObj];
+}
+*/

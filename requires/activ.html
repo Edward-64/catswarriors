@@ -1,22 +1,19 @@
-<p class="head-text" style="margin-top: 0px">Активация персонажа</p>
-<div style="position: relative;top: -20px;left: -2px;background: url('css/img/line.png') repeat-x;height: 20px;"></div>
+<span class="head-text">Активация персонажа</span>
+<div style="background: url('css/img/line.png') repeat-x;height: 20px;"></div>
 <button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
 
-<form name="activ" onsubmit="activCharacter(); return false;" style="position: relative; top: -20px">
-	<div style="margin-bottom: 10px;">Чтобы активировать персонажа, введите его псевдоним и пароль. Если Вы ещё не создали персонажа,
+<div style="margin-bottom: 10px;">Чтобы активировать персонажа, введите его псевдоним и пароль. Если Вы ещё не создали персонажа,
 	то вернитесь назад и в ответ на вопрос "Что хотите?" напишите "Создать персонажа"</div>
-	<div>
+<form name="activ" onsubmit="activCharacter(); return false;">
+	<div class="field-div-hight">
 		<div class="fiels-div">Псевдоним</div>
-		<div class="fiels-div" style="position: relative; left: -35px"><input class="form" name="alias" value="" autocomplete="off" placeholder="Пишите здесь"></div>
-		<div class="fiels-divErr" id="alias"></div>
+		<input class="form fiels-div" name="alias" value="" autocomplete="off" placeholder="Пишите здесь">
+		<div class="fiels-div fiels-divErr" id="alias"></div>
 	</div>
-        <div>
+      <div class="field-div-hight">
                 <div class="fiels-div">Пароль</div>
-                <div class="fiels-div" style="position: relative; left: -35px"><input class="form" type="password" name="password" value="" autocomplete="off"></div>
-                <div class="fiels-divErr"></div>
-        </div>
-	<div style="text-align: center; position: relative; left: -25px; top: 20px">
-		<button class="form" type="button" onclick="activCharacter()">Активировать</button>
-	</div>
-
+                <input class="form fiels-div" type="password" name="password" value="" autocomplete="off">
+                <div class="fiels-div fiels-divErr"></div>
+      </div>
+	<button style="position: relative; left: 36.5%; margin-top: 10px" class="form" type="button" onclick="activCharacter()">Активировать</button>
 </form>

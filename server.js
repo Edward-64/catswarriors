@@ -13,6 +13,7 @@ function error500(res) {
 	res.end('Произошла ошибка на стороне сервера :(');
 }
 
+//если не нужен JSON
 function getStaticFile(res, path, contentType, responseCode) {
 	if(!responseCode) res.statusCode = 200;
 	fs.readFile(__dirname + path, (err, data) => {
@@ -151,13 +152,9 @@ function download(req, res, contentLength, path) {
 	});
 }
 
-function checkCookie(type, res, answ) {
-	if (type === 'user') {
-		res.setHeader('content-type', 'application/json;charset=utf-8');
-		res.end(JSON.stringify(answ));
-	} else if (type === 'admin') {
-		//future code typeof db.info.admins => array
-	}
+function afterCheckCookie(res, answ) {
+	res.setHeader('content-type', 'application/json;charset=utf-8');
+	res.end(JSON.stringify(answ));
 }
 
 function getJSON(req, res, contentLength, cmd) {
@@ -195,12 +192,16 @@ function isAdmin(pn) {
 function parseAnotherRequest(require, res, req) {
 	const c = ch.existingCookie(req.headers.cookie);
 
-	if (require === 'зфнс' || /загрузить файл на сервер/i.test(require)) {
+	if (require === 'зфнс') {
 		if (c > 0) {
-			if (isAdmin(c)) getBufferFile(res, '/requires/load.html')
-			else checkCookie('user', res, {res: 2}); //нет прав
-		} else checkCookie('user', res, {res: 0}); //персонаж не активирован
-	} else checkCookie('user', res, {res: 3}) //попробуйте что-нибудь другое
+			if (isAdmin(c)) getBufferFile(res, '/requires/load.html', [-200, -200])
+			else afterCheckCookie(res, {res: 2}); //нет прав
+		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
+	} else if (require === 'тм' || /творить мир/i.test(require)) {
+		if (c > 0) {
+			if (isAdmin(c)) getBufferFile(res, '/requires/creating_world.html', [-350, -280])
+		} else afterCheckCookie(res, {res: 0});
+	}  else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
 }
 
 function didInfr(type, pn) {
@@ -209,10 +210,11 @@ function didInfr(type, pn) {
 	fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(db), (err) => { if (err) error500(res); });
 }
 
-function getBufferFile(res, path) {
+function getBufferFile(res, path, add) {
 	const answ = {
 		res: undefined,
 		data: undefined,
+		add: add,
 	};
 	fs.readFile(__dirname + path, (err, data) => {
 		if (err) {
@@ -244,7 +246,7 @@ const server = http.createServer((req, res) => {
 	if (c > 0) db[c].lastVisitOfSite = Date.now();
 
 	if (req.method === 'GET') {
-		console.log(req.url);
+//		console.log(req.url);
 		switch(path) {
 			case '/':
 				getStaticFile(res, '/index.html', 'text/html'); break;
@@ -260,6 +262,8 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/css/style_game.css', 'text/css'); break;
 			case '/js/handlerRequires.js':
 				getStaticFile(res, '/js/handler_requires.js', 'application/javascript'); break;
+			case '/js/outdata.js':
+				getStaticFile(res, '/js/outdata.js', 'application/javascript'); break;
 			case '/js/play.js':
 				getStaticFile(res, '/js/play.js', 'application/javascript'); break;
 			case '/play':
@@ -268,16 +272,27 @@ const server = http.createServer((req, res) => {
 				break;
 			case '/creating':
 				if (c > 0) {
-					checkCookie('user', res, {res: 0, alias: db[c].alias, password: db[c].password}); //нет
+					afterCheckCookie(res, {res: 0, alias: db[c].alias, password: db[c].password}); //нет
 				} else if (c < 0) {
-					checkCookie('user', res, {res: 2, catName: db[-c].catName}); //нет, предупреждение
+					afterCheckCookie(res, {res: 2, catName: db[-c].catName}); //нет, предупреждение
 					didInfr('creatingTwoChar', -c);
 				} else if (c == 0) getBufferFile(res, '/requires/creating.html'); break; //да
 			case '/load':
-				getStaticFile(res, '/requires/load.html', 'text/html'); break;
+				if (isAdmin(c)) getStaticFile(res, '/requires/load.html', 'text/html')
+				else {
+					res.setHeader('content-type', 'text/plain;charset=utf-8');
+					res.end('У вас недостаточно прав или персонаж не активирован');
+				}; break;
+			case '/world':
+				if (isAdmin(c)) getStaticFile(res, '/requires/creating_world.html', 'text/html')
+				else {
+					res.setHeader('content-type', 'text/plain;charset=utf-8');
+					res.end('У вас недостаточно прав или персонаж не активирован');
+				}
+				break;
 			case '/activ':
 				if (c <= 0) getBufferFile(res, '/requires/activ.html') //да
-				else checkCookie('user', res, {res: 2, catName: db[c].catName}); break; //уже активировпн
+				else afterCheckCookie(res, {res: 2, catName: db[c].catName}); break; //уже активировпн
 			case '/img/textures/':
 				getStaticFile(res, `/img/textures/${n}.svg`, 'image/svg+xml'); break;
 			case '/img/details/':
@@ -288,6 +303,10 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, `/img/players/${n}.svg`, 'image/svg+xml'); break;
 			case '/css/img/button.png':
 				getStaticFile(res, '/css/img/button.png', 'image/png'); break;
+			case '/css/img/arrow.svg':
+				getStaticFile(res, '/css/img/arrow.svg', 'image/svg+xml'); break;
+			case '/css/img/lightarrow.svg':
+				getStaticFile(res, '/css/img/lightarrow.svg', 'image/svg+xml'); break;
 			case '/css/img/lowMsg.png':
 				getStaticFile(res, '/css/img/lowMsg.png', 'image/png'); break;
 			case '/css/img/line.png':
@@ -483,7 +502,7 @@ wss.on('connection', (ws) => {
         });
         ws.on('close', () => {
 			g = findPlayer(pn);
-			cash[g.data.pn] = g;
+			if (g != -1) cash[g.data.pn] = g;
         });
 });
 
