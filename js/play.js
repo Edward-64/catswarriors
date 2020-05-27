@@ -97,7 +97,7 @@ function addMeow(pn, msg) {
 
 function sendMeow() {
 	const meow = document.forms.meowing.elements.meowing.value;
-	addMeow(0, meow);
+	if (!meow) return; addMeow(0, meow);
 	if (ws.readyState === WebSocket.OPEN) {
 		ws.send(JSON.stringify({type: 104, value: meow}))
 	};

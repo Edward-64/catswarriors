@@ -29,6 +29,8 @@ const dbclear = {
                   infractions: {},
                   game: {
                                     health: 100,
+				    moons: 0,
+				    speed: 50,
                                     lastPlace: [0, 30, 10, 1],
                                     status: 'unactiv',
                   }

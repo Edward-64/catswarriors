@@ -250,12 +250,13 @@ function editExsisLocation() {
 
 }
 
-/*
+
 let nextObj = 0;
 function listingObjects(plus) {
 	const lb = document.getElementById('bleft'),
 		rb = document.getElementById('bright'),
 		pobj = document.getElementById('obj'),
+		colors = document.getElementById('colors'),
 		maxObj = objectsdb.length - 1;
 
 	nextObj += plus;
@@ -268,6 +269,23 @@ function listingObjects(plus) {
 	if (plus < 0) { lb.style.right = '10px'; setTimeout(() => lb.style.right = '0px', 500); }
 	if (plus > 0) { rb.style.left = '10px'; setTimeout(() => rb.style.left = '0px', 500); }
 
-	pobj.src = objectsdb[nextObj];
+	pobj.data = objectsdb[nextObj].url;
+
+	function changeSVG(from, to) {
+		const find = pobj.contentDocument.querySelectorAll('path');
+		for(let i = 0; i < find.length; i++) {
+			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
+				find[i].attributes.fill.value = to;
+			}
+		}
+	}
+
+	const colorf = createElement('input'); colorf.type = 'color';
+	colorf.classList.add('form');
+	//добавить событие, возникающее при выборе формы
+	//событие вызывает функцию changeSVG(..., ...)
+	//у которой первый аргумент - дефортное значение (генерируется при динамическом добавлении
+	//кнопки через массив detailsdb[i].d) а второй - value
+	colors.appendChild(colorf);
+
 }
-*/

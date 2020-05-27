@@ -346,7 +346,7 @@ const WebSocket = require('ws'),
 	cash = {};
 
 function findClient(pn) {
-        if (pn === undefined) return -1;
+        if (pn === undefined || pn <= 0) return -1;
         let i = 0
         for(; i < clients.length; i++) {
                 if (clients[i].pn === pn) break;
@@ -356,7 +356,7 @@ function findClient(pn) {
 }
 
 function findPlayer(pn) {
-	if (pn === undefined) return -1;
+	if (pn === undefined || pn <= 0) return -1;
 
       const tmpfp = findClient(pn) != -1 ? '' + clients[findClient(pn)].loc : false,
             place = tmpfp || db[pn].game.lastPlace[0];
@@ -465,6 +465,8 @@ wss.on('connection', (ws) => {
                 } else if (msg.type == 103) {
                         clearTimeout(control);
                         g = findPlayer(pn);
+
+			console.log(g);
 
                         wsSend(5, [g, msg.value]);
 
