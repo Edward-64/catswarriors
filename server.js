@@ -3,9 +3,9 @@
 const http = require('http'),
 	fs = require('fs'),
 	formidable = require('formidable'),
-	db = require('./databases/cats.js'),
-	world = require('./databases/world.js'), //нужно сохранять периодически?
-	ch = require('./lib/cookie.js').include(db);
+	{db, world, editDBs} = require('./databases/launch.js'),
+	ch = require('./lib/cookie.js').include(db),
+	cw = require('./lib/creating_world.js').include(db, world);
 
 function error500(res) {
 	res.statusCode = 500;
@@ -13,107 +13,118 @@ function error500(res) {
 	res.end('Произошла ошибка на стороне сервера :(');
 }
 
-//если не нужен JSON
-function getStaticFile(res, path, contentType, responseCode) {
-	if(!responseCode) res.statusCode = 200;
-	fs.readFile(__dirname + path, (err, data) => {
-		if (err) {
-			error500(res);
-			//Логинируй ошибку
-		} else {
-			res.setHeader('content-type', contentType + ';charset=utf-8');
-			res.end(data);
-		}
-	});
-};
+function getStaticFile(res, path, json, contentType) {
+	if (json) {
+		res.setHeader('content-type', 'application/json; charset=utf-8');
+		fs.readFile(__dirname + path, 'utf8', (err, data) => {
+			if (err) {
+				res.end(JSON.stringify({ res: 0 }));
+				//логинируй ошибку
+			} else res.end(JSON.stringify({ res: 1, data: data, add: json }));
+		});
+	} else {
+		fs.readFile(__dirname + path, (err, data) => {
+			if (err) {
+				error500(res);
+				//логинируй ошибку
+			} else {
+				res.setHeader('content-type', contentType + ';charset=utf-8');
+				res.end(data);
+			}
+		});
+	}
+}
 
-//reg - регистрация
-function addDevice(pn, req, reg) {
+function addDevice(pn, req) {
+	if (!db.cats[pn]) return;
 	let d = req.headers['user-agent'].match(/\((.*?)\)/);
 	if (d) {
 		d = d[0];
-		if (reg) return d;
-		let l = db[pn].devices.length, j = 0;
+		let l = db.cats[pn].devices.length, j = 0;
 		for(; j < l; j++) {
-			if (db[pn].devices[j] === d) break;
+			if (db.cats[pn].devices[j] === d) break;
 		}
-		if (!l || j === l) {
-			db[pn].devices.push(d);
-			fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(db), (err) => { if (err) error500(res); });
+		if (j == l) {
+			db.cats[pn].devices.push(d);
+			editDBs.save('db');
 			return 1;
-		} else return 0;
-	}  return 0;
+		}
+	}
 }
 
 function createCharacter(rawData, req, res) {
-	function sendCrJSON(id) {
+	function sendCrJSON(answ) {
 		res.setHeader('content-type', 'application/json;charset=utf-8');
-		res.end(JSON.stringify(resOfServ[id]));
+		res.end(JSON.stringify(answ));
 	}
+	if (!rawData) { sendCrJSON({ cr: 0, res: 'некорректные данные'} ); return; }
 	let lastCat = db.info.totalCats,
 	regCatName = rawData.catName.match(/[а-яА-Я]+/g),
 	regAlias = rawData.alias.match(/[a-zA-Zа-яА-Я\d]+/g),
-	regPass = rawData.password.match(/[\wа-яА-Я\-\d]+/),
-	resOfServ = {
-		res: { res: 'Персонаж не создан: некорректные данные', cr: 0 },
-		nameExist: { res: 'Персонаж не создан: персонаж с таким именем уже существует', cr: 0 },
-		passExist: { res: 'Персонаж не создан: придумайте другой пароль', cr: 0 },
-	};
+	regPass = rawData.password.match(/[\wа-яА-Я\-\d]+/);
 
-        if (regCatName && regCatName.length === 2) regCatName = regCatName[0] + ' ' + regCatName[1];
-        if (regCatName && regCatName.length === 1) regCatName = regCatName[0];
-        if (regPass) regPass = regPass[0];
-        if (regAlias) regAlias = regAlias.join(' ');
+      if (regCatName && regCatName.length == 2) regCatName = regCatName.join(' ');
+      if (regCatName && regCatName.length == 1) regCatName = regCatName[0];
+      if (regPass) regPass = regPass[0];
+      if (regAlias) regAlias = regAlias.join(' ');
+
 
 	const a = rawData.catName.length < 2 || rawData.catName.length > 32,
 	b = rawData.alias.length < 2 || rawData.alias.length > 32 || rawData.password.length < 6 || rawData.password.length > 32,
 	c = regCatName !== rawData.catName || regAlias !== rawData.alias || regPass !== rawData.password;
 
-	if (!(regCatName && regAlias && regPass) || a || b || c) sendCrJSON('res')
+	if (!(regCatName && regAlias && regPass) || a || b || c) sendCrJSON({ cr: 0, res: 'некорректные данные'} )
 	else {
 		let i = 1;
 		for(; i <= lastCat; i++) {
-			if (db[i].catName.toLowerCase() === rawData.catName.toLowerCase()) break;
+			if (db.cats[i].catName.toLowerCase() === rawData.catName.toLowerCase()) break;
        	}
-		if (i !== lastCat + 1) sendCrJSON('nameExist')
+		if (i <= lastCat) sendCrJSON({ cr: 0, res: 'персонаж с таким именем уже существует'} )
 		else {
 			i = 1;
 			for(; i <= lastCat; i++) {
-				if (db[i].password === rawData.password) break;
+				if (db.cats[i].password === rawData.password) break;
 			}
-			if (i !== lastCat + 1) sendCrJSON('passExist')
-			else if (ch.existingCookie(req.headers.cookie, rawData) < 0) { //Создай проверку на то, что девайсы совпадают
+			if (i <= lastCat) sendCrJSON({ res: 'придумайте другой пароль', cr: 0 })
+			else { //Создай проверку на то, что девайсы && ip совпадают
 				const c = ch.existingCookie(req.headers.cookie, rawData);
-				didInfr('creatingTwoChar', -c);
-      				res.setHeader('content-type', 'application/json;charset=utf-8');
-	      			res.end(JSON.stringify({res: `<span class='lower-text'>У Вас уже есть персонаж по имени ${db[-c].catName}.` +
-				`Создание сразу двух и более персонажей запрещено, поэтому, если продолжите попытки создания нового персонажа,` +
-				` ${db[-c].catName} будет заблокирован и нового создать Вы не сможете. Чтобы создать нового персонажа, нужно удалить старого.</span>`, cr: 0}));
-			} else {
-				const newCat = {
-					catName: rawData.catName[0].toUpperCase() + rawData.catName.substring(1).toLowerCase(),
-					gender: rawData.gender,
-					alias: rawData.alias,
-					password: rawData.password,
-					devices: [addDevice(lastCat, req, true)],
-					cookie: ch.generateCookie(),
-					dateOfReg: Date.now(),
-					lastVisitOfSite: Date.now(),
-					infractions: {},
-					servInfractions: {},
-					game: {
-						health: 100,
-						moons: 0,
-						speed: 50,
-						lastPlace: [0, 30, 10, 1],
-						status: 'unactiv',
-					}
+				if (c < 0) {
+					didInfr('creatingTwoChar', -c);
+	      			sendCrJSON({ cr: 0, res: `<span class="lower-text">У Вас уже есть персонаж по имени ${db[-c].catName}. ` +
+					`Создание сразу двух и более персонажей запрещено, поэтому, если продолжите попытки создания нового персонажа, ` +
+					`${db[-c].catName} будет заблокирован и нового создать Вы не сможете. Чтобы создать нового персонажа, нужно удалить старого.</span>` });
 				}
-				db[++lastCat] = newCat;
-				++db.info.totalCats;
-				fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(db), (err) => { if (err) error500(res); });
-				resOfServ.compl = { res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1, token: db[lastCat].cookie }
-				sendCrJSON('compl');
+				else {
+					const cNewCat = ch.generateCookie(),
+						pnNewCat = ++db.info.totalCats;
+					db.cats[pnNewCat] = {
+						catName: rawData.catName[0].toUpperCase() + rawData.catName.substring(1).toLowerCase(),
+						role: 'user',
+						gender: rawData.gender,
+						alias: rawData.alias,
+						password: rawData.password,
+						devices: [],
+						cookie: cNewCat,
+						dateOfReg: Date.now(),
+						lastVisitOfSite: Date.now(),
+						infractions: {},
+						servInfractions: {},
+						game: {
+							public: {
+								health: 100,
+								moons: 1,
+								speed: 50,
+								size: 0.3,
+								lastPlace: [20, 0, 0, 1],
+								status: 'unactiv',
+								last: Date.now() - 15 * 60001,
+							}
+						}
+					};
+					editDBs.save('db');
+					ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
+					sendCrJSON({ res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
+				}
 			}
 		}
 	}
@@ -147,8 +158,7 @@ function download(req, res, contentLength, path) {
 			if(err) error500(res);
 			fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => { if (err) error500(res) });
 		});
-		getStaticFile(res, '/requires/load.html', 'text/html', 200);
-
+		getStaticFile(res, '/index.html', null, 'text/html');
 	});
 }
 
@@ -162,7 +172,8 @@ function getJSON(req, res, contentLength, cmd) {
 	if (contentLength > 1024) {
 		res.statusCode = 400;
 		res.setHeader('content-type', 'application/json; charset=utf-8');
-		res.end({ res: 3, answ: 'Слишком тяжелый запрос (более 1-го Кбайта)'});
+
+		res.end({ res: 3, answ: 'Слишком тяжелый запрос (более одного Кбайта)'});
 	}
 	req.on('data', (chunk) => {
 		body += chunk;
@@ -180,57 +191,30 @@ function getJSON(req, res, contentLength, cmd) {
 	});
 }
 
-function isAdmin(pn) {
-	let i = 0, admins = db.info.admins.length;
-	for(; i < admins; i++) {
-		if (pn === db.info.admins[i]) break;
-        }
-	if (i !== admins) return true
-	else return false;
-}
-
 function parseAnotherRequest(require, res, req) {
-	const c = ch.existingCookie(req.headers.cookie);
-
+	const c = ch.existingCookie(req.headers.cookie),
+		p = db.cats[c] ? db.cats[c].role : null;
 	if (require === 'зфнс') {
 		if (c > 0) {
-			if (isAdmin(c)) getBufferFile(res, '/requires/load.html', [-200, -200])
+			if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', [-200, -200])
 			else afterCheckCookie(res, {res: 2}); //нет прав
 		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
 	} else if (require === 'тм' || /творить мир/i.test(require)) {
 		if (c > 0) {
-			if (isAdmin(c)) getBufferFile(res, '/requires/creating_world.html', [-350, -280])
+			if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
+			else afterCheckCookie(res, {res: 2});
 		} else afterCheckCookie(res, {res: 0});
 	}  else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
 }
 
 function didInfr(type, pn) {
-	if (db[pn].infractions[type]) db[pn].infractions[type] += 1
-	else db[pn].infractions[type] = 1;
-	fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(db), (err) => { if (err) error500(res); });
-}
-
-function getBufferFile(res, path, add) {
-	const answ = {
-		res: undefined,
-		data: undefined,
-		add: add,
-	};
-	fs.readFile(__dirname + path, (err, data) => {
-		if (err) {
-			answ.res = 0;
-			answ.data = '';
-		} else {
-			answ.res = 1;
-			answ.data = data.toString('utf8');
-			res.setHeader('content-type', 'application/json; charset=utf-8');
-			res.end(JSON.stringify(answ));
-		}
-	});
+	if (db.cats[pn].infractions[type]) db.cats[pn].infractions[type] += 1
+	else db.cats[pn].infractions[type] = 1;
+	editDBs.save('db');
 }
 
 const server = http.createServer((req, res) => {
-	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = undefined;
+	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = null;
 	if (path) {
 		path = path[0];
 		if (path.startsWith('/img/')) {
@@ -242,79 +226,73 @@ const server = http.createServer((req, res) => {
 		}
 	} else path = '/';
 
-	const c = ch.existingCookie(req.headers.cookie || '');
-	if (c > 0) db[c].lastVisitOfSite = Date.now();
+	const c = ch.existingCookie(req.headers.cookie || ''),
+		p = c > 0 ? db.cats[c].role : null;
+	if (c > 0) db.cats[c].lastVisitOfSite = Date.now();
 
 	if (req.method === 'GET') {
 //		console.log(req.url);
 		switch(path) {
 			case '/':
-				getStaticFile(res, '/index.html', 'text/html'); break;
-//			case '/1':
-//				getStaticFile(res, '/server.js', 'application/javascript'); break;
-//			case '/2':
-//				getStaticFile(res, '/WSserver.js', 'application/javascript'); break;
+				getStaticFile(res, '/index.html', null, 'text/html'); break;
 			case '/favicon.ico':
-				getStaticFile(res, '/favicon.ico', 'image/vnd.microsoft.icon'); break;
+				getStaticFile(res, '/favicon.ico', null, 'image/vnd.microsoft.icon'); break;
 			case '/css/style.css':
-				getStaticFile(res, '/css/style.css', 'text/css'); break;
+				getStaticFile(res, '/css/style.css', null, 'text/css'); break;
 			case '/css/styleGame.css':
-				getStaticFile(res, '/css/style_game.css', 'text/css'); break;
+				getStaticFile(res, '/css/style_game.css', null, 'text/css'); break;
 			case '/js/handlerRequires.js':
-				getStaticFile(res, '/js/handler_requires.js', 'application/javascript'); break;
+				getStaticFile(res, '/js/handler_requires.js', null, 'application/javascript'); break;
 			case '/js/outdata.js':
-				getStaticFile(res, '/js/outdata.js', 'application/javascript'); break;
+				getStaticFile(res, '/js/outdata.js', null, 'application/javascript'); break;
 			case '/js/play.js':
-				getStaticFile(res, '/js/play.js', 'application/javascript'); break;
+				getStaticFile(res, '/js/play.js', null, 'application/javascript'); break;
 			case '/play':
-				if (c > 0) getStaticFile(res, '/play.html', 'text/html')
-				else getStaticFile(res, '/requires/error_play.html', 'text/html');
+				if (c > 0) {
+					res.setHeader('set-cookie', [`timeauth=${db.cats[c].cookie};max-age=60`,
+										`timealias=${encodeURI(db.cats[c].alias)};max-age=60`]);
+					getStaticFile(res, '/play.html', null, 'text/html');
+				}
+				else getStaticFile(res, '/requires/error_play.html', null, 'text/html'); //возможно лучше через json
 				break;
 			case '/creating':
 				if (c > 0) {
-					afterCheckCookie(res, {res: 0, alias: db[c].alias, password: db[c].password}); //нет
+					afterCheckCookie(res, {res: 0}); //нет
 				} else if (c < 0) {
-					afterCheckCookie(res, {res: 2, catName: db[-c].catName}); //нет, предупреждение
+					afterCheckCookie(res, {res: 2, catName: db.cats[-c].catName}); //нет, предупреждение
 					didInfr('creatingTwoChar', -c);
-				} else if (c == 0) getBufferFile(res, '/requires/creating.html'); break; //да
+				} else if (c == 0) getStaticFile(res, '/requires/creating.html', 'json'); break; //да
 			case '/load':
-				if (isAdmin(c)) getStaticFile(res, '/requires/load.html', 'text/html')
-				else {
-					res.setHeader('content-type', 'text/plain;charset=utf-8');
-					res.end('У вас недостаточно прав или персонаж не активирован');
-				}; break;
+				if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', null, 'text/html'); break;
 			case '/world':
-				if (isAdmin(c)) getStaticFile(res, '/requires/creating_world.html', 'text/html')
-				else {
-					res.setHeader('content-type', 'text/plain;charset=utf-8');
-					res.end('У вас недостаточно прав или персонаж не активирован');
-				}
-				break;
+				if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', null, 'text/html'); break;
 			case '/activ':
-				if (c <= 0) getBufferFile(res, '/requires/activ.html') //да
-				else afterCheckCookie(res, {res: 2, catName: db[c].catName}); break; //уже активировпн
+				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
+				else afterCheckCookie(res, {res: 2, catName: db.cats[c].catName}); break; //уже активировaн
 			case '/img/textures/':
-				getStaticFile(res, `/img/textures/${n}.svg`, 'image/svg+xml'); break;
+				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
-				getStaticFile(res, `/img/details/${n}.svg`, 'image/svg+xml'); break;
+				getStaticFile(res, `/img/details/${n}.svg`, null, 'image/svg+xml'); break;
 			//на сервере фактический адрес должен быть /img/players/[pn игрока]/0.svg...1.svg...2.svg и т.д.
 			//на всякий случай проверь c > 0
 			case '/img/players/': //!!!
-				getStaticFile(res, `/img/players/${n}.svg`, 'image/svg+xml'); break;
+				getStaticFile(res, `/img/players/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/css/img/button.png':
-				getStaticFile(res, '/css/img/button.png', 'image/png'); break;
+				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
 			case '/css/img/arrow.svg':
-				getStaticFile(res, '/css/img/arrow.svg', 'image/svg+xml'); break;
+				getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lightarrow.svg':
-				getStaticFile(res, '/css/img/lightarrow.svg', 'image/svg+xml'); break;
+				getStaticFile(res, '/css/img/lightarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowMsg.png':
-				getStaticFile(res, '/css/img/lowMsg.png', 'image/png'); break;
+				getStaticFile(res, '/css/img/lowMsg.png', null, 'image/png'); break;
 			case '/css/img/line.png':
-				getStaticFile(res, '/css/img/line.png', 'image/png'); break;
+				getStaticFile(res, '/css/img/line.png', null, 'image/png'); break;
 			case '/css/img/verticalLine.png':
-				getStaticFile(res, '/css/img/vertical_line.png', 'image/png'); break;
+				getStaticFile(res, '/css/img/vertical_line.png', null, 'image/png'); break;
 			case '/css/img/head.jpg':
-				getStaticFile(res, '/css/img/head.jpg', 'image/jpg'); break;
+				getStaticFile(res, '/css/img/head.jpg', null, 'image/jpg'); break;
+			case '/dac':
+				ch.deleteCookie(res); break;
 			default:
 				res.statusCode = 404;
 				res.setHeader('content-type', 'text/plain; charset=utf-8');
@@ -325,7 +303,7 @@ const server = http.createServer((req, res) => {
 	if (req.method = 'POST') {
 		switch(path) {
 			case '/dlf':
-				if (isAdmin(c)) download(req, res, contentLength);
+				if (/admin/.test(p)) download(req, res, contentLength);
 				break;
 			case '/cc':
 				if (c == 0) getJSON(req, res, contentLength, path);
@@ -338,195 +316,134 @@ const server = http.createServer((req, res) => {
 				break;
 		}
 	}
-}).listen(process.env.PORT || 8080, () => console.log('Server is running'));
+}).listen(process.env.PORT || 9090, () => console.log('Server is running'));
 
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
-	clients = [],
-	cash = {};
+	clients = [];
 
 function findClient(pn) {
-        if (pn === undefined || pn <= 0) return -1;
-        let i = 0
-        for(; i < clients.length; i++) {
-                if (clients[i].pn === pn) break;
-        }
-        if (i !== clients.length) return i;
-        return -1;
+      if (!pn || pn <= 0) return -2;
+      let i = 0;
+      for(; i < clients.length; i++) {
+      	if (clients[i].pn == pn) break;
+      }
+      if (i != clients.length) return i;
+      return -1;
 }
 
-function findPlayer(pn) {
-	if (pn === undefined || pn <= 0) return -1;
-
-      const tmpfp = findClient(pn) != -1 ? '' + clients[findClient(pn)].loc : false,
-            place = tmpfp || db[pn].game.lastPlace[0];
-      let i = null, p = null;
-
-      if (world.nosort[place].public) {
-      	const w = world.nosort[place].public.fill;
-            let i = 0;
-            for(; i < w.length; i++) {
-            	if (w[i].pn === pn) break;
-            }
-            p = (i !== w.length) ? w[i] : p;
+function validateMsg(type) {
+	switch (type) {
+		//
 	}
-	//в возвращаемых значениях хранятся ссылки
-      return {place: place, data: p};
 }
 
-function wsSend(type, data, socket) {
-        if (type == 6) {
-                for(let j = 0; j < clients.length; j++) {
-                        if (clients[j].loc == data[0].place) clients[j].ws.send(JSON.stringify({
-                                type: 6,
-                                pn: data[0].data.pn,
-                                msg: data[1],
-                        }));
-                }
-        } else if (type == 5) {
-                for(let j = 0; j < clients.length; j++) {
-                        if (clients[j].loc == data[0].place) clients[j].ws.send(JSON.stringify({
-                                type: 5,
-                                pn: data[0].data.pn,
-                                chunk: data[1],
-                        }));
-                }
-        } else if (type == 4) {
-                for(let j = 0; j < clients.length; j++) {
-                  if (clients[j].loc == data.place) clients[j].ws.send(JSON.stringify({
-                        type: 4,
-				cat: data.data,
-                  }));
-            }
-        } else if (type == 3) {
-                socket.send(JSON.stringify({
-                        type: 3,
-                        loc: world.nosort[data.place].public,
-                }));
-        } else if (type == 7) {
-		    socket.send(JSON.stringify({
-				type: 7,
-				chunk: data,
-		    }));
-        } else if (type == 8) {
-                for(let j = 0; j < clients.length; j++) {
-                        if (clients[j].loc == data.place) clients[j].ws.send(JSON.stringify({
-                                type: 8,
-                                pn: data.data.pn,
-                        }));
-		    }
-	  } else if (type == 2) {
-                socket.send(JSON.stringify({
-                        type: 2,
-                        pn: data.pn,
-                        name: data.name,
-                        chunk: data.chunk,
-                }));
-        }
+function findInLoc(pn, loc) {
+	const l = world.locs[loc].public.fill.length;
+	let	i = 0;
+	for(; i < l; i++) {
+		if (world.locs[loc].public.fill[i].pn == pn) return i;
+	}
+	return -1;
+}
+
+function wsSend(type, range, data, ws) {
+	switch (range) {
+		case 'one':
+			 ws.send(JSON.stringify({
+				type: type,
+				data: data,
+			})); break;
+		case 'inloc':
+            	for(let j = 0; j < clients.length; j++) {
+            		if (clients[j].loc == data[0]) clients[j].ws.send(JSON.stringify({
+                        	type: type,
+					data: data[1],
+                  	}));
+			} break;
+		case 'all': break;
+	}
 }
 
 wss.on('connection', (ws) => {
-        let pn = undefined, g = undefined, control = undefined;
+	const timeofc = Date.now();
+	let	pn = null, c = null, sh = null, control = null;
 
-        ws.on('message', (m) => {
-                const msg = JSON.parse(m);
+	ws.on('message', (m) => {
+      	let {type, msg} = JSON.parse(m);
+		if (typeof type === 'string') type = Number.parseInt(type);
 
-                if (msg.type == 102) {
-                        pn = ch.existingCookie(decodeURI(m), false);
-                        g = findPlayer(pn);
-                        if (!g.data) { //если он впервые заходит в игру, то этот скрипт запускается
-                                const cat = {
-                                                status: 'activ',
-								health: db[pn].game.health,
-								moons: db[pn].game.moons,
-								speed: db[pn].game.speed,
-                                                pn: pn,
-                                                name: db[pn].catName,
-                                                //в БД 0 - локация, 1 - х, 2 - у, 3 - ориентация
-                                                //в игре 0 - х, 1 - у, 2 - ориентация
-                                                chunk: [db[pn].game.lastPlace[1], db[pn].game.lastPlace[2], db[pn].game.lastPlace[3]],
-                                        };
-                                world.nosort[g.place].public.fill.push(cat);
-                                g = findPlayer(pn);
-                        } else if (g.data.status === 'unactiv' || /sleep/.test(g.data.status)) {
-                                g.data.status = 'activ';
-                        }
+		switch (type) {
+			case 102:
+				pn = ch.existingCookie(decodeURI(msg.token));
+				c = findClient(pn);
+				if (c == -2) { ws.close(); break; } sh = db.cats[pn].game.public;
+				if (c == -1) clients.push({pn: pn, ws: ws, loc: sh.lastPlace[3]});
+				if (c >= 0) clients[c].ws = ws;
+				sh.pn = pn; sh.name = db.cats[pn].catName;
+				sh.status = 'activ'; sh.last = Date.now();
+				if (findInLoc(pn, sh.lastPlace[3]) < 0) world.locs[sh.lastPlace[3]].public.fill.push(sh);
+				wsSend(2, 'one', sh, ws); wsSend(3, 'one', {loc: world.locs[sh.lastPlace[3]].public}, ws); wsSend(4, 'inloc', [sh.lastPlace[3], sh]);
+				break;
+			case 103:
+				if (pn <= 0 || !sh) {ws.close(); break; }
+				clearTimeout(control);
+				const disX = msg.value[0] - sh.lastPlace[0], disY = msg.value[1] - sh.lastPlace[1],
+					dis = Math.round(Math.sqrt(Math.pow(disX, 2) + Math.pow(disY, 2))) * sh.speed,
+					stepX = disX / 5, stepY = disY / 5;
+				let	moving = null, orient = sh.lastPlace[2], p = world.locs[sh.lastPlace[3]].paths;
 
-				const exc = findClient(pn);
-                        if (exc == -1) clients.push({pn: pn, ws: ws, loc: g.place})
-				else clients[exc].ws = ws;
+				if (!dis) break;
 
-                        const socket = clients[findClient(pn)].ws;
-                        if (socket.readyState === WebSocket.OPEN) {
-                                wsSend(2, g.data, socket);
-                                wsSend(3, g, socket);
-                                wsSend(4, g);
-                        }
-                } else if (msg.type == 103) {
-                        clearTimeout(control);
-                        g = findPlayer(pn);
-
-			console.log(g);
-
-                        wsSend(5, [g, msg.value]);
-
-				const dis = Math.round(Math.sqrt(Math.pow(msg.value[0] - g.data.chunk[0], 2) +
-						Math.pow(msg.value[1] - g.data.chunk[1], 2) + 0.6)) * g.data.speed;
-				control = setTimeout(() => {
-                              g.data.chunk = msg.value;
-           				const p =  world.nosort[g.place].paths;
-           				for(let j = 0; j < p.length; j++) {
-           					if (p[j].minChunk[0] <= g.data.chunk[0] && p[j].maxChunk[0] >= g.data.chunk[0] &&
-           					p[j].minChunk[1] <= g.data.chunk[1] && p[j].maxChunk[1] >= g.data.chunk[1]) {
-							const fc = clients[findClient(pn)].ws;
-                                          wsSend(7, p[j].toC, fc);
-							wsSend(8, g);
-							for(let i = 0; i < world.nosort[g.place].public.fill.length; i++) {
-								if (world.nosort[g.place].public.fill[i].pn == g.data.pn) {
-									world.nosort[g.place].public.fill.splice(i, 1);
-									clients[findClient(pn)].loc = p[j].to;
-									g.place = p[j].to;
-									g.data.chunk[0] = p[j].toC[0];
-									g.data.chunk[1] = p[j].toC[1];
-									world.nosort[p[j].to].public.fill.push(g.data);
-									break;
-								}
-							}
-							wsSend(3, g, fc);
-							wsSend(4, g);
-                                          break;
-           					}
+           			for(let j = 0; j < p.length; j++) {
+           				if (p[j].minChunk[0] <= msg.value[0] && p[j].maxChunk[0] >= msg.value[0] &&
+           				p[j].minChunk[1] <= msg.value[1] && p[j].maxChunk[1] >= msg.value[1]) {
+						moving = p[j];
+                                    break;
            				}
-                        }, dis);
-                } else if (msg.type = 104) {
-                        wsSend(6, [findPlayer(pn), msg.value]);
-                }
-        });
-        ws.on('close', () => {
-			g = findPlayer(pn);
-			if (g != -1) cash[g.data.pn] = g;
-        });
-});
+           			}
 
-setInterval(() => {
-        for(let i = 0; i < world.nosort.length; i++) {
-                for(let j = 0; j < world.nosort[i].public.fill.length; j++) {
-                        db[world.nosort[i].public.fill[j].pn].game.lastPlace = [
-                                i,
-                                world.nosort[i].public.fill[j].chunk[0],
-                                world.nosort[i].public.fill[j].chunk[1],
-                                world.nosort[i].public.fill[j].chunk[2],
-                        ];
-                }
-        }
-//      for(let i = 0; i < cash.length; i++) {
-//              const pn = cash[i].pn;
-//              здесь можно будет сохранять накопившиеся в cash данные
-//              после парсинга нужно очистить cash
-//      }
-        fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(db), (err) => {
-                if (err) console.log(err); //тут тоже нужен нормальный обработчик ошибок
-        });
-        console.log('it`s happened');
-}, 1500000);
+				msg.value[0] = msg.value[0] < 20 ? 20 : msg.value[0];
+				msg.value[0] = msg.value[0] > 140 ? 140 : msg.value[0];
+				msg.value[1] = msg.value[1] < 0 ? 0 : msg.value[1];
+				msg.value[1] = msg.value[1] > 30 ? 30 : msg.value[1];
+
+				wsSend(5, 'inloc', [sh.lastPlace[3], {pn: pn, s: {dis: dis, oldchunk: sh.lastPlace, newchunk: msg.value}}]);
+
+				if (disX > 0) sh.lastPlace[2] = 1
+				else if (disX < 0) sh.lastPlace[2] = 0;
+
+				for(let i = 0; i < dis; i += dis/5) {
+					control = setTimeout(() => {
+						sh.lastPlace[0] += stepX;
+						sh.lastPlace[1] += stepY;
+						if (i + dis/5 >= dis && moving) {
+							p = findInLoc(pn, sh.lastPlace[3]);
+							if (p != -1) world.locs[sh.lastPlace[3]].public.fill.splice(p, 1);
+							wsSend(8, 'inloc', [sh.lastPlace[3], pn]);
+							sh.lastPlace = [moving.to[0], moving.to[1], moving.to[2], moving.to[3]];
+							p = findClient(pn);
+							if (p >= 0) {
+								clients[p].loc = sh.lastPlace[3];
+								wsSend(4, 'inloc', [sh.lastPlace[3], sh]);
+								wsSend(3, 'one', {chunk: sh.lastPlace, del: true, loc: world.locs[sh.lastPlace[3]].public}, ws);
+							} else {
+								ws.close();
+								console.log('при перемещении игрок не найден в массиве clients');
+							}
+							world.locs[sh.lastPlace[3]].public.fill.push(sh);
+						}
+					}, i);
+				} break;
+			case 104:
+				if (pn <= 0) { ws.close(); break; }
+				wsSend(6, 'inloc', [ sh.lastPlace[3], { msg: msg.value, pn: pn, }]);
+		}
+	});
+
+	ws.on('close', () => {
+		const timeofclose = (Date.now() - timeofc), minute = ` или ${Math.round(timeofclose / 60000)} минут`;
+		console.log(`Сокет закрылся через ${Math.round(timeofclose / 1000)} секунд${(timeofclose / 6000) > 2 ? minute : ''}`);
+	});
+});
 
