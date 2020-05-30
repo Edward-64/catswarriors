@@ -1,40 +1,35 @@
-const MAP_OF_TOKEN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-	L_MAP = MAP_OF_TOKEN.length,
-	fs = require('fs');
-
-function generateCookie () {
-      let key = 'cwGame-';
-      for(let i = 0; i < 32; i++) {
-            let index = Math.floor(Math.random() * L_MAP);
-            key += MAP_OF_TOKEN[index];
-      }
-      return key;
-}
-
-
+const fs = require('fs');
 const dbclear = {
       info: {
             totalCats: 1,
-            admins: [1],
       },
-      1: {
-                  catName: 'Рыболов',
-                  password: 'MIKIcatsKatya36',
-                  gender: 1,
-                  alias: 'Котик Эдварда',
+      cats: {
+	      1: {
+      	          catName: 'Рыболов',
+		  role: 'useradmincreater',
+            	  password: 'mikimiki99',
+        	  gender: 1,
+         	  alias: 'Котик Эдварда',
                   devices: [],
-                  cookie: generateCookie(),
+                  cookie: 'cwGame-specialCookieOfAdmin????????????',
                   dateOfReg: Date.now(),
                   lastVisitOfSite: Date.now(),
                   infractions: {},
+		  servInfractions: [],
                   game: {
-                                    health: 100,
-				    moons: 0,
-				    speed: 50,
-                                    lastPlace: [0, 30, 10, 1],
-                                    status: 'unactiv',
-                  }
+			public: {
+				  pn: 1;
+	        	          health: 100,
+				  moons: 0,
+				  speed: 50,
+	                          lastPlace: [1, 30, 10, 1],
+				  size: 1,
+	                          status: 'unactiv',
+				  last: Date.now(),
+			}
+                      }
+		},
       },
 }
-fs.writeFile('./databases/cats.js', 'module.exports = ' + JSON.stringify(dbclear), (err) => { console.log(err); });
+fs.writeFile('./databases/cats.js', JSON.stringify(dbclear), (err) => { console.log(err); });
 
