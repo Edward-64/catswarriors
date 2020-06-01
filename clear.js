@@ -18,7 +18,6 @@ const dbclear = {
 		  servInfractions: [],
                   game: {
 			public: {
-				  pn: 1;
 	        	          health: 100,
 				  moons: 0,
 				  speed: 50,

@@ -59,9 +59,9 @@ function createCharacter(rawData, req, res) {
 	}
 	if (!rawData) { sendCrJSON({ cr: 0, res: 'некорректные данные'} ); return; }
 	let lastCat = db.info.totalCats,
-	regCatName = rawData.catName.match(/[а-яА-Я]+/g),
-	regAlias = rawData.alias.match(/[a-zA-Zа-яА-Я\d]+/g),
-	regPass = rawData.password.match(/[\wа-яА-Я\-\d]+/);
+	regCatName = rawData.catName.match(/[а-яА-Яё]+/g),
+	regAlias = rawData.alias.match(/[a-zA-Zа-яА-Яё\d]+/g),
+	regPass = rawData.password.match(/[\wа-яА-Яё\-\d]+/);
 
       if (regCatName && regCatName.length == 2) regCatName = regCatName.join(' ');
       if (regCatName && regCatName.length == 1) regCatName = regCatName[0];

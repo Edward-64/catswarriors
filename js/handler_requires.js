@@ -40,9 +40,9 @@ function createCharacter() {
 			boolEmP = true; break;
 		}
 	}
-	let regCatName = data.catName.match(/[а-яА-Я]+/g),
-	regAlias = data.alias.match(/[a-zA-Zа-яА-Я\d]+/g),
-	regPass = data.password.match(/[\wа-яА-Я\-\d]+/);
+	let regCatName = data.catName.match(/[а-яА-Яё]+/g),
+	regAlias = data.alias.match(/[a-zA-Zа-яА-Я\dё]+/g),
+	regPass = data.password.match(/[\wа-яА-Я\-\dё]+/);
 
 	if (regCatName && regCatName.length === 2) regCatName = regCatName.join(' ');
 	if (regCatName && regCatName.length === 1) regCatName = regCatName[0];
