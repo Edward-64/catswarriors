@@ -176,12 +176,13 @@ body {
 
 .cw-setting {
 	display: flex;
-	justify-content: space-around;
+	justify-content: center;
 }
 
 .cw-part-of-setting {
 	text-align: center;
 	width: 200px;
+	margin-left: 30px;
 }
 
 .question {

@@ -216,6 +216,8 @@ function didInfr(type, pn) {
 const server = http.createServer((req, res) => {
 	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = null;
 
+	//req.connection.remoteAddress || req.headers['x-forwarded-for'];
+
 	if (path) {
 		path = path[0];
 		if (path.startsWith('/img/')) {
