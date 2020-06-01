@@ -2,22 +2,39 @@
 <button class="form cr-w-button" type="button" onclick="createNewLocation();">Создать новую локацию</button>
 <button class="form cr-w-button" type="button" onclick="editExsisLocation();">Изменить существующую локацию</button>
 <div id="createNewLocation" style="display: none">
-	<div class="cl-h-div">
-		<div class="cl-i-div">
+	<div class="cw-setting">
+		<div class="cw-part-of-setting">
 			<p>Добавление объекта</p>
-			<button id="bleft" class="arrow-button an-l-arr" onclick="listingObjects(-1);"></button>
-			<div class="cl-i-div-lower">
+			<div class="cw-block">
+				<button id="bleft" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="listingObjects(-1)" class="arrow-button an-l-arr"></button>
 				<object id="obj" type="image/svg+xml" data="/img/details/0.svg">Ваш браузер не поддерживает SVG</object>
+				<button id="bright" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="listingObjects(1)"></button>
 			</div>
-			<button id="bright" class="arrow-button an-r-arr" style="transform: scale(-1);" onclick="listingObjects(1);"></button>
 			<div id="colors"></div>
+			<div>
+				x: <input id="x" class="form" style="width: 25px;margin: 3px 10px 3px 3px;">
+				y: <input id="y" class="form" style="width: 25px; margin: 3px">
+				<div style="display: inline-block;position: relative;top: 5px;">
+					<span class="lower-text" style="">x ∈ [-10; 160]<br>y ∈ [0; 31]</span>
+				</div>
+			<div id="q">
+				<input id="size" class="form" style="width: 20px;margin: 3px 3px 3px 3px;">
+				<span class="lower-text">Коэффициент увеличения</span>
+			</div>
+			<button class="form" onclick="applySizeXY();">Добавить</button>
+			</div>
 		</div>
-		<div class="cl-i-div"></div>
 	</div>
-	<div class="cl-h-div">
-
+	<div id="viewer">
+		<div  style="height: 5%"></div>
+		<div id="sky" style="height: 50%; width: 100%; background: #97c0d9"></div>
+		<div id="nearloc" style="height: 10%; width: 100%; background: #9ca754"></div>
+		<div id="headloc" style="position: relative;height: 30%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;);"></div>
+	</div>
+	<div id="added">
+		<p>Добавленные объекты</p>
 	</div>
 </div>
-<div id="editExsisLocation" style="display: none">
-
+<div id="editExsisLocation" style="display: none;text-align: center;">
+	<img src="/img/indev.svg" width="400">
 </div>

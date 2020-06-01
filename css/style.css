@@ -132,18 +132,8 @@ body {
 	margin-bottom: 10px;
 }
 
-.cl-h-div {
-	text-align: center;
-}
-
-.cl-i-div {
-	display: inline-block;
-	text-align: center;
-}
-
 .arrow-button {
-	background: url('img/arrow.svg') center no-repeat;
-	height: 100px;
+	height: 30px;
 	width: 20px;
 	border: none;
 	position: relative;
@@ -161,8 +151,55 @@ body {
 	transition: left 0.5s;
 }
 
-.cl-i-div-lower {
-	display: inline-block;
-	width: 200px;
+#obj {
 	height: 100px;
+	width: 100px;
+	margin: 0 20px 0 20px;	
+}
+
+#viewer {
+	margin: 30px auto;
+	background: #bb8b54;
+	border: 2px solid #0f0905;
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+#added {
+	margin: auto;
+}
+
+.cw-block {
+	display: flex;
+	align-items: center;
+}
+
+.cw-setting {
+	display: flex;
+	justify-content: space-around;
+}
+
+.cw-part-of-setting {
+	text-align: center;
+	width: 200px;
+}
+
+.question {
+	border-radius: 10px;
+      background-color: #bb8b54;
+      border: 2px solid #0f0905;
+      padding: 1px;
+	cursor: help;
+	display: inline-block;
+	position: relative;
+}
+
+.window-of-q {
+	display: none;
+	position: absolute;
+	width: 200px;
+	top: 20px;
+	left: 10px;
+	z-index: 100;
+	opacity: .6;
 }

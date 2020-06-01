@@ -1,3 +1,4 @@
+'use strict'
 const req = new XMLHttpRequest(),
 oldWindow = {
 	content: document.getElementById('require').innerHTML,
@@ -204,73 +205,165 @@ function backRequire() {
 	resizeWindow(0, 0);
 }
 
+
 function resizeWindow(w, h) {
 	document.getElementById('container').style.width = `${oldWindow.widthHight + w}px`;
 	document.getElementById('lower-cover').style.width = `${oldWindow.width + w}px`;
 	document.getElementById('cover').style.width = `${oldWindow.widthHight + w}px`;
-
 	document.getElementById('container').style.minHeight = `${oldWindow.minHeight + h}px`;
 	document.getElementById('lower-cover').style.minHeight = `${oldWindow.minHeight + h}px`;
 	document.getElementById('cover').style.minHeight = `${oldWindow.minHeight + h}px`;
 }
 
-function createNewLocation() {
-	resizeWindow(200, 0); document.getElementsByTagName('button')[1].style.backgroundColor = '#976b3c';
-	document.getElementsByTagName('button')[2].style.backgroundColor = '#bb8b54';
-	document.getElementById('editExsisLocation').style.display = 'none';
-	document.getElementById('bleft').style.background = `url('css/img/lightarrow.svg') no-repeat`;
-	const create = document.getElementById('createNewLocation');
-
-	create.style.display = 'block';
-
+function addQue(text, where) {
+	const div = document.createElement('div'),
+		lowdiv = document.createElement('div');
+	lowdiv.classList.add('window-of-q'); lowdiv.classList.add('form');
+	lowdiv.innerHTML = text;
+	div.classList.add('question');
+	div.textContent = '?';
+	div.appendChild(lowdiv);
+	const events = where.appendChild(div);
+	events.onmouseover = () => {
+		events.childNodes[1].style.display = 'inline-block';
+	};
+	events.onmouseout = () => {
+		events.childNodes[1].style.display = 'none';
+	};
 }
 
-function editExsisLocation() {
-	resizeWindow(200, 0); document.getElementsByTagName('button')[2].style.backgroundColor = '#976b3c';
-	document.getElementsByTagName('button')[1].style.backgroundColor = '#bb8b54';
-	document.getElementById('createNewLocation').style.display = 'none';
-	const edit = document.getElementById('editExsisLocation');
+let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObjects, applyColors,
+	applySizeXY, preloadCW;
+{
+	const dataToS = {objs: [{}], other: {}};
+	let	colors, obj, nextObj = 0, canRunPreload = true, x, y,
+		headloc, added, nowposition = 0;
 
-	edit.style.display = 'block';
-
-}
-
-
-let nextObj = 0;
-function listingObjects(plus) {
-	const lb = document.getElementById('bleft'),
-		rb = document.getElementById('bright'),
-		pobj = document.getElementById('obj'),
-		colors = document.getElementById('colors'),
-		maxObj = objectsdb.length - 1;
-
-	nextObj += plus;
-
-	if (nextObj < 0) { nextObj = 0 } else { if (nextObj > maxObj) nextObj = maxObj; }
-	if (nextObj == 0) lb.style.background = `url('css/img/lightarrow.svg') center no-repeat`
-	else lb.style.background = `url('css/img/arrow.svg') center no-repeat`;
-	if (nextObj == maxObj) rb.style.background = `url('css/img/lightarrow.svg') center no-repeat`;
-	else rb.style.background = `url('css/img/arrow.svg') center no-repeat`;
-	if (plus < 0) { lb.style.right = '10px'; setTimeout(() => lb.style.right = '0px', 500); }
-	if (plus > 0) { rb.style.left = '10px'; setTimeout(() => rb.style.left = '0px', 500); }
-
-	pobj.data = objectsdb[nextObj].url;
-
-	function changeSVG(from, to) {
-		const find = pobj.contentDocument.querySelectorAll('path');
+	preloadCW = function() {
+		addQue('Значение больше нуля увеличивает объект, а меньше нуля — уменьшает его.<br>'+
+		'Например, коэффициент 4 увеличит объект в четыре раза, а 0.5 уменьшит в два раза.',
+		document.getElementById('q'));
+		(colors = document.getElementById('colors')).innerHTML = generateColors(0);
+		document.getElementById('viewer').style.width = `${document.querySelector('html').clientWidth / 2}px`;
+		document.getElementById('viewer').style.height = `${document.querySelector('html').clientHeight / 2}px`;
+		document.getElementById('added').style.width = `${document.querySelector('html').clientWidth / 2}px`;
+		headloc = document.querySelector('#headloc'); added = document.getElementById('added');
+	}
+	createNewLocation = function() {
+		if (canRunPreload) { preloadCW(); canRunPreload = false; }
+		resizeWindow(200, 0); obj = document.getElementById('obj');
+		document.getElementsByTagName('button')[1].style.backgroundColor = '#976b3c';
+		document.getElementsByTagName('button')[2].style.backgroundColor = '#bb8b54';
+		document.getElementById('editExsisLocation').style.display = 'none';
+		document.getElementById('createNewLocation').style.display = 'block';
+		x = headloc.clientWidth / 160;
+		y = headloc.clientHeight / 30;
+	}
+	editExsisLocation = function() {
+		resizeWindow(200, 0); obj = document.getElementById('obj');
+		document.getElementsByTagName('button')[2].style.backgroundColor = '#976b3c';
+		document.getElementsByTagName('button')[1].style.backgroundColor = '#bb8b54';
+		document.getElementById('createNewLocation').style.display = 'none';
+		document.getElementById('editExsisLocation').style.display = 'block';
+	}
+	applySizeXY = function() {
+		const createX = Number.parseInt(document.getElementById('x').value),
+			createY = Number.parseInt(document.getElementById('y').value),
+			createS = Number.parseFloat(document.getElementById('size').value.replace(/,/, '.')) || 1;
+		if (createX < -10 || createX > 160 || createY < 0 || createY > 31) {
+			alert('Координаты выходят за пределы допустимого диапазона');
+			return;
+		} else if (!(createX + 1) || !(createY + 1)) {
+			alert('Введённые данные не являются числом');
+			return;
+		}
+		dataToS.objs[nowposition].chunk = [createX, createY]; dataToS.objs[nowposition].s = createS;
+		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		let	newobj = obj.contentDocument.all[0].cloneNode(true),
+			newobjadd = obj.contentDocument.all[0].cloneNode(true),
+			shellNewObj = document.createElement('div'),
+			b = document.createElement('button'),
+			n = nowposition; //dataToS.length - 1;
+		newobj.style.position = 'absolute';
+		newobj.style.zIndex = 100 - dataToS.objs[nowposition].chunk[1];
+		newobj.style.width = `${obj.contentDocument.all[0].attributes.width.value / 2 * dataToS.objs[nowposition].s}px`;
+		newobj.style.height = `${obj.contentDocument.all[0].attributes.height.value / 2 * dataToS.objs[nowposition].s}px`;
+		newobj.style.left = `${dataToS.objs[nowposition].chunk[0] * x}px`;
+		newobj.style.bottom = `${dataToS.objs[nowposition].chunk[1] * y}px`;
+		headloc.appendChild(newobj);
+		newobjadd.style.width = '100px';
+		newobjadd.style.height = '20px';
+		shellNewObj.style.display = 'inline-block';
+		shellNewObj.appendChild(newobjadd);
+/*		b.classList.add('form');
+		b.style.marginRight = '3px';
+		b.textContent = 'редактировать';
+		b.onclick = () => {
+			//редактируем
+		}
+		shellNewObj.appendChild(b);
+		b = document.createElement('button'); */
+		b.classList.add('form');
+		b.textContent = 'удалить';
+		b.onclick = () => {
+			shellNewObj.remove();
+			newobj.remove();
+			dataToS.objs[n] = null
+			localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		}
+		shellNewObj.appendChild(b);
+		added.appendChild(shellNewObj);
+		dataToS.objs.push(Object.assign({}, dataToS.objs[nowposition]));
+		++nowposition;
+	}
+	changeSVG = function(from, to) {
+		let find = obj.contentDocument.querySelectorAll('path');
+		for(let i = 0; i < find.length; i++) {
+			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
+				find[i].attributes.fill.value = to;
+			}
+		}
+		find = obj.contentDocument.querySelectorAll('ellipse');
 		for(let i = 0; i < find.length; i++) {
 			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
 				find[i].attributes.fill.value = to;
 			}
 		}
 	}
-
-	const colorf = createElement('input'); colorf.type = 'color';
-	colorf.classList.add('form');
-	//добавить событие, возникающее при выборе формы
-	//событие вызывает функцию changeSVG(..., ...)
-	//у которой первый аргумент - дефортное значение (генерируется при динамическом добавлении
-	//кнопки через массив detailsdb[i].d) а второй - value
-	colors.appendChild(colorf);
+	applyColors = function() {
+		const l = document.forms.color.length - 1, stack = [];
+		for(let i = 0; i < l; i++) {
+			changeSVG(dataToS.objs[nowposition].colors[i], document.forms.color.elements[i].value);
+			stack.push(document.forms.color.elements[i].value);
+		}
+		dataToS.objs[nowposition].colors = stack;
+	}
+	generateColors = function(n) {
+		dataToS.objs[nowposition].colors = [];
+		let	formColors = '<form name="color">';
+		for(let i = 0; i < objectsdb[n].d.length; i++) {
+			formColors += `<input style="margin: 1px" class="form" type="color" value="${objectsdb[n].d[i]}">`;
+			dataToS.objs[nowposition].colors.push(objectsdb[n].d[i]);
+		}
+		formColors += '<button style="width: 100%; margin-top: 3px" class="form" type="button" onclick="applyColors();">Применить другой цвет</button></form>';
+		return formColors;
+	}
+	listingObjects = function(plus) {
+		if (!plus) { obj.data = objectsdb[nextObj].url; return; }
+		let a = false;
+		const lb = document.getElementById('bleft'),
+			rb = document.getElementById('bright'),
+			endObj = objectsdb.length - 1;
+		nextObj = (nextObj += plus) < 0 ? (a = true, 0) : nextObj > endObj ? (a = true, endObj) : nextObj;
+		if (nextObj == 0) { lb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
+		else lb.style.background = `url('css/img/arrow.svg') no-repeat`;
+		if (nextObj == endObj) { rb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
+		else rb.style.background = `url('css/img/arrow.svg') no-repeat`;
+		if (plus < 0) { lb.style.right = '10px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
+		if (plus > 0) { rb.style.left = '10px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
+		if (a) return;
+		obj.data = objectsdb[nextObj].url;
+		obj.onload = () => { colors.innerHTML = generateColors(nextObj) }
+	}
 
 }

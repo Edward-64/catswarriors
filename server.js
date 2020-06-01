@@ -155,8 +155,8 @@ function download(req, res, contentLength, path) {
 			res.end('Слишком тяжелый файл (более 1-го Мбайта)');
 		}
 		fs.readFile(files.photo.path, (err, data) => {
-			if(err) error500(res);
-			fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => { if (err) error500(res) });
+			if(err) error500(res)
+			else fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => { if (err) error500(res) });
 		});
 		getStaticFile(res, '/index.html', null, 'text/html');
 	});
@@ -215,6 +215,7 @@ function didInfr(type, pn) {
 
 const server = http.createServer((req, res) => {
 	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = null;
+
 	if (path) {
 		path = path[0];
 		if (path.startsWith('/img/')) {
@@ -222,7 +223,7 @@ const server = http.createServer((req, res) => {
 			if (n) {
 				n = n[0];
 				path = path.replace(/\d+.*/, '')
-			} else path = '/';
+			}
 		}
 	} else path = '/';
 
@@ -281,6 +282,8 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
 			case '/css/img/arrow.svg':
 				getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
+			case '/img/indev.svg':
+				getStaticFile(res, '/img/indev.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lightarrow.svg':
 				getStaticFile(res, '/css/img/lightarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowMsg.png':
@@ -316,7 +319,7 @@ const server = http.createServer((req, res) => {
 				break;
 		}
 	}
-}).listen(process.env.PORT || 9090, () => console.log('Server is running'));
+}).listen(process.env.PORT || 8080, () => console.log('Server is running'));
 
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
