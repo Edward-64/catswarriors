@@ -205,7 +205,6 @@ function backRequire() {
 	resizeWindow(0, 0);
 }
 
-
 function resizeWindow(w, h) {
 	document.getElementById('container').style.width = `${oldWindow.widthHight + w}px`;
 	document.getElementById('lower-cover').style.width = `${oldWindow.width + w}px`;
@@ -232,22 +231,140 @@ function addQue(text, where) {
 	};
 }
 
-let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObjects, applyColors,
-	applySizeXY, preloadCW;
+let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObjects, applyColors, createLoc,
+	applySizeXY, preloadCW, orientCW, listingLocs, addPath, renameLoc, addDisallow, listingTextures,
+	showCreater, showAdder, listingExObjects, turnBack;
 {
-	const dataToS = {objs: [{}], other: {}};
-	let	colors, obj, nextObj = 0, canRunPreload = true, x, y,
-		headloc, added, nowposition = 0;
+	const dataToS = {objs: [{}], paths: [{to: []}], disa: []};
+	let	colors, obj, nextObj = 0, nextLoc = 1, nextTexs = 0, nextColor = 0, nextExObj = 0,
+		canRunPreload = true, x, y,
+		headloc, addedObj, addedPaths, addedStops, crORadd, adder, creater, loading,
+		nowposition = 0, nowpsPaths = 0,
+		orient, tmporient, locsname, objsnames;
 
 	preloadCW = function() {
+		req.open('GET', '/datalocs', true);
+		req.send();
+		req.onload = () => {
+			if (req.status !== 200) alert('Произошла ошибка на сервере')
+			else locsname = JSON.parse(req.response);
+		}
+		for(let i = 0; i <= 160; i++) {
+			dataToS.disa[i] = [];
+		}
+		addQue('Ширина и высота игрового поля условно делится на 160 и 30 частей соответственно. Следовательно, координаты (0, 0) расположат ' +
+		'объект в нижнем левом углу, а (160, 30) в правом верхнем.', document.getElementById('c'));
 		addQue('Значение больше нуля увеличивает объект, а меньше нуля — уменьшает его.<br>'+
 		'Например, коэффициент 4 увеличит объект в четыре раза, а 0.5 уменьшит в два раза.',
 		document.getElementById('q'));
 		(colors = document.getElementById('colors')).innerHTML = generateColors(0);
 		document.getElementById('viewer').style.width = `${document.querySelector('html').clientWidth / 2}px`;
 		document.getElementById('viewer').style.height = `${document.querySelector('html').clientHeight / 2}px`;
-		document.getElementById('added').style.width = `${document.querySelector('html').clientWidth / 2}px`;
-		headloc = document.querySelector('#headloc'); added = document.getElementById('added');
+		headloc = document.querySelector('#headloc'); addedObj = document.getElementById('addedObj');
+		addedPaths = document.getElementById('addedPaths'); addedStops = document.getElementById('addedStops');
+		crORadd = document.getElementById('crORadd'); adder = document.getElementById('adder');
+		creater = document.getElementById('creater'); loading = document.getElementById('loading');
+	}
+	listingTextures = function(plus) {
+		let a = false;
+		const lb = document.getElementById('bleft1'),
+			rb = document.getElementById('bright1'),
+			name = document.getElementById('typeOfTexs'),
+			maxTexs = texturesdb.length - 1;
+		nextTexs = (nextTexs += plus) < 0 ? (a = true, 0) : maxTexs < nextTexs ? (a = true, maxTexs) : nextTexs;
+		if (nextTexs == 0) { lb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
+		else lb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
+		if (nextTexs == maxTexs) { rb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
+		else rb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
+		if (plus < 0) { lb.style.right = '5px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
+		if (plus > 0) { rb.style.left = '5px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
+		if (a) return;
+		name.innerHTML = texturesdb[nextTexs].name;
+		headloc.style.background = `url("/img/textures/${nextTexs}.svg")`
+		dataToS.t = nextTexs;
+	}
+	addDisallow = function() {
+		++nextColor;
+		const div = document.createElement('div'),
+			startX = Number.parseInt(document.getElementById('startX').value),
+			startY = Number.parseInt(document.getElementById('startY').value),
+			endX = Number.parseInt(document.getElementById('endX').value),
+			endY = Number.parseInt(document.getElementById('endY').value),
+			b = document.createElement('button'),
+			shellNewDisa = document.createElement('div'),
+			col = document.createElement('div');
+		let	biggerX, biggerY, lowerX, lowerY;
+		if (nextColor >= colorsdb.length) nextColor = 0;
+		if (startX == endX || startY == endY) { alert('Конечная и начальная точка не могут быть равны'); return; }
+		if (startX < 0 || startX > 160 || startY < 0 || startY > 30) {
+			alert('Координаты начальной точки вышли за пределы допустимого диапазона');
+			return;
+		} else if (!(startX + 1) || !(startY + 1)) {
+			alert('Введённые Координаты начальной точки не являются числом');
+			return;
+		}
+		if (endX < 0 || endX > 160 || endY < 0 || endY > 30) {
+			alert('Координаты конечной точки вышли за пределы допустимого диапазона');
+			return;
+		} else if (!(endX + 1) || !(endY + 1)) {
+			alert('Введённые Координаты конечной точки не являются числом');
+			return;
+		}
+		if (startX > endX) { biggerX = startX; lowerX = endX }
+		else { biggerX = endX; lowerX = startX }
+		if (startY > endY) { biggerY = startY; lowerY = endY }
+		else { biggerY = endY; lowerY = startY }
+
+		for(let i = lowerX; i <= biggerX; i++) {
+			for(let j = lowerY; j <= biggerY; j++) {
+				if (dataToS.disa[i][j]) {
+					alert('Это зона (или её часть) уже помечена как недоступная');
+					return;
+				}
+				dataToS.disa[i][j] = 1;
+			}
+		}
+
+		div.style.position = 'absolute';
+		div.style.zIndex = 104;
+		div.style.width = `${Math.abs(endX - startX) * x}px`;
+		div.style.height = `${Math.abs(endY - startY) * y}px`;
+		div.style.left = `${(lowerX) * x}px`;
+		div.style.bottom = `${(lowerY) * y}px`;
+		div.style.background = colorsdb[nextColor];
+		div.style.opacity = '.8';
+		headloc.appendChild(div);
+
+		col.style.width = '100px';
+		col.style.height = '20px';
+		col.innerHTML = `<span class="lower-text">(${lowerX}, ${lowerY})∪(${biggerX}, ${biggerY})</span>`;
+		col.style.background = colorsdb[nextColor];
+		col.style.display = 'inline-block';
+		shellNewDisa.style.marginBottom = '5px';
+		shellNewDisa.appendChild(col);
+
+		b.classList.add('form');
+		b.style.marginLeft = '5px';
+		b.textContent = 'удалить';
+		b.onclick = () => {
+			shellNewDisa.remove();
+			div.remove();
+			for(let i = lowerX; i <= biggerX; i++) {
+				for(let j = lowerY; j <= biggerY; j++) {
+					dataToS.disa[i][j] = null;
+				}
+			}
+			localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		}
+		shellNewDisa.appendChild(b);
+		addedStops.appendChild(shellNewDisa);
+		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+
+	}
+	renameLoc = function(v) {
+		if (!locsname) return; v = Number.parseInt(v);
+		nextLoc = v || 1;
+		document.getElementById('typeOfTxts').textContent = locsname[v] ? locsname[v] : '[локация не существует]';
 	}
 	createNewLocation = function() {
 		if (canRunPreload) { preloadCW(); canRunPreload = false; }
@@ -266,24 +383,113 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		document.getElementById('createNewLocation').style.display = 'none';
 		document.getElementById('editExsisLocation').style.display = 'block';
 	}
+	orientCW = function(v) {
+		const lOr = document.getElementById('lOr'),
+			rOr = document.getElementById('rOr');
+		tmporient = v;
+		if (v) {
+			rOr.style.background = '#976b3c';
+			lOr.style.background = '#bb8b54';
+		} else {
+			lOr.style.background = '#976b3c';
+			rOr.style.background = '#bb8b54';
+		}
+	}
+	listingLocs = function(plus) {
+		if (!locsname) return;
+		let a = false;
+		nextLoc = (nextLoc += plus) < 1 ? (a = true, 1) : locsname[0] < nextLoc ? (a = true, locsname[0]) : nextLoc;
+		const lb = document.getElementById('bleft2'),
+			rb = document.getElementById('bright2'),
+			name = document.getElementById('typeOfTxts');
+		if (nextLoc == 1) { lb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
+		else lb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
+		if (nextLoc == locsname[0]) { rb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
+		else rb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
+		if (plus < 0) { lb.style.right = '5px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
+		if (plus > 0) { rb.style.left = '5px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
+		if (a) return;
+		name.innerHTML = locsname[nextLoc];
+		dataToS.paths[nowpsPaths].to[3] = nextLoc;
+	}
+	addPath = function() {
+		const pathX = Number.parseInt(document.getElementById('pathX').value),
+			pathY = Number.parseInt(document.getElementById('pathY').value),
+			endX = Number.parseInt(document.getElementById('endXP').value),
+			endY = Number.parseInt(document.getElementById('endYP').value),
+			div = document.createElement('div'),
+			shellNewPath = document.createElement('div'),
+			b = document.createElement('button'),
+			n = nowpsPaths;
+		if (pathX < 0 || pathX > 140 || pathY < 0 || pathY > 25) {
+			alert('Координаты пути выходят за пределы допустимого диапазона');
+			return;
+		} else if (!(pathX + 1) || !(pathY + 1)) {
+			alert('Введённые координаты пути не являются числом');
+			return;
+		}
+		if (endX < 20 || endX > 140 || endY < 0 || endY > 30) {
+			alert('Координаты позиции игрока после перемещения выходят за пределы допустимого диапазона');
+			return;
+		} else if (!(endX + 1) || !(endY + 1)) {
+			alert('Введённая позиция игрока после перемещения не являются числом');
+			return;
+		}
+		dataToS.paths[n].to[0] = endX;
+		dataToS.paths[n].to[1] = endY;
+		dataToS.paths[n].to[2] = tmporient;
+		dataToS.paths[n].to[3] = nextLoc;
+
+		dataToS.paths[n].minChunk = [pathX, pathY];
+		dataToS.paths[n].maxChunk = [pathX + 20, pathY + 5];
+
+		div.style.position = 'absolute';
+		div.style.zIndex = 101;
+		div.style.width = `${20 * x}px`;
+		div.style.height = `${5 * y}px`;
+		div.style.left = `${pathX * x}px`;
+		div.style.bottom = `${pathY * y}px`;
+		div.style.background = 'deeppink';
+		div.style.opacity = '.4';
+		div.innerHTML = `<div style="font-size: 6pt;">Путь №${nextLoc}</div>`
+		headloc.appendChild(div);
+		shellNewPath.style.marginBottom = '5px';
+		shellNewPath.innerHTML = `<div class="lower-text">Путь №${nextLoc} ведет в ${locsname[nextLoc]}</div>`;
+		b.classList.add('form');
+		b.textContent = 'удалить';
+		b.onclick = () => {
+			shellNewPath.remove();
+			div.remove();
+			dataToS.paths[n] = null;
+			localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		}
+		shellNewPath.appendChild(b);
+		addedPaths.appendChild(shellNewPath);
+		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		dataToS.paths.push({to: []});
+		++nowpsPaths;
+	}
 	applySizeXY = function() {
+		if (!obj.contentDocument) return;
 		const createX = Number.parseInt(document.getElementById('x').value),
 			createY = Number.parseInt(document.getElementById('y').value),
 			createS = Number.parseFloat(document.getElementById('size').value.replace(/,/, '.')) || 1;
-		if (createX < -10 || createX > 160 || createY < 0 || createY > 31) {
+		if (createX < -10 || createX > 160 || createY < -5 || createY > 30) {
 			alert('Координаты выходят за пределы допустимого диапазона');
 			return;
 		} else if (!(createX + 1) || !(createY + 1)) {
 			alert('Введённые данные не являются числом');
 			return;
 		}
-		dataToS.objs[nowposition].chunk = [createX, createY]; dataToS.objs[nowposition].s = createS;
+		dataToS.objs[nowposition].chunk = [createX, createY];
+		dataToS.objs[nowposition].s = createS;
+		dataToS.objs[nowposition].n = nextObj;
 		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
 		let	newobj = obj.contentDocument.all[0].cloneNode(true),
 			newobjadd = obj.contentDocument.all[0].cloneNode(true),
 			shellNewObj = document.createElement('div'),
 			b = document.createElement('button'),
-			n = nowposition; //dataToS.length - 1;
+			n = nowposition;
 		newobj.style.position = 'absolute';
 		newobj.style.zIndex = 100 - dataToS.objs[nowposition].chunk[1];
 		newobj.style.width = `${obj.contentDocument.all[0].attributes.width.value / 2 * dataToS.objs[nowposition].s}px`;
@@ -312,7 +518,7 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 			localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
 		}
 		shellNewObj.appendChild(b);
-		added.appendChild(shellNewObj);
+		addedObj.appendChild(shellNewObj);
 		dataToS.objs.push(Object.assign({}, dataToS.objs[nowposition]));
 		++nowposition;
 	}
@@ -340,10 +546,12 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 	}
 	generateColors = function(n) {
 		dataToS.objs[nowposition].colors = [];
+		dataToS.objs[nowposition].d = [];
 		let	formColors = '<form name="color">';
 		for(let i = 0; i < objectsdb[n].d.length; i++) {
 			formColors += `<input style="margin: 1px" class="form" type="color" value="${objectsdb[n].d[i]}">`;
 			dataToS.objs[nowposition].colors.push(objectsdb[n].d[i]);
+			dataToS.objs[nowposition].d.push(objectsdb[n].d[i]);
 		}
 		formColors += '<button style="width: 100%; margin-top: 3px" class="form" type="button" onclick="applyColors();">Применить другой цвет</button></form>';
 		return formColors;
@@ -365,5 +573,78 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		obj.data = objectsdb[nextObj].url;
 		obj.onload = () => { colors.innerHTML = generateColors(nextObj) }
 	}
+	showCreater = function() {
+		crORadd.style.display = 'none';
+		creater.style.display = 'block';
+	}
+	showAdder = function() {
+		crORadd.style.display = 'none';
+		if (!objsnames) {
+			req.open('GET', '/geted', true);
+			req.send();
+			loading.style.display = 'block';
+			const loadingTick = setInterval(() => {
+				loading.textContent = 'Загрузка ';
+				setTimeout(() => { loading.textContent = 'Загрузка .' }, 400);
+				setTimeout(() => { loading.textContent = 'Загрузка . .' }, 800);
+				setTimeout(() => { loading.textContent = 'Загрузка . . .' }, 1200);
+			}, 1600);
+			req.onload = () => {
+				const res = JSON.parse(req.responseText);
+				if (res.res == 0) {
+					alert('Локация не создана: ' + res.msg);
+				} else if (res.res == 1) {
+					clearInterval(loadingTick);
+					loading.style.display = 'none';
+					adder.style.display = 'block';
+					objsnames = res.data;
 
+					obj = document.getElementById('exobj');
+					nextObj = 0;
+					dataToS.objs[nowposition].noserve = '/img/details/0/0.svg';
+
+					console.log(res.data);
+				}
+			}
+		}
+	}
+	turnBack = function(type) {
+		if (type == 'adder') {
+			obj = document.getElementById('obj');
+			delete dataToS.objs[nowposition].noserve;
+			nextObj = 0;
+			adder.style.display = 'none';
+			creater.style.display = 'block';
+		} else if (type == 'creater') {
+			creater.style.display = 'none';
+			adder.style.display = 'block';
+			obj = document.getElementById('exobj');
+			nextObj = 0;
+			dataToS.objs[nowposition].noserve = '/img/details/0/0.svg';
+		}
+	}
+	listingExObjects = function(plus) {
+		let a = false;
+		const lb = document.getElementById('bleft3'),
+			rb = document.getElementById('bright3'),
+			endObj = objsnames.length - 1;
+		nextObj = (nextObj += plus) < 0 ? (a = true, 0) : nextObj > endObj ? (a = true, endObj) : nextObj;
+		if (nextObj == 0) { lb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
+		else lb.style.background = `url('css/img/arrow.svg') no-repeat`;
+		if (nextObj == endObj) { rb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
+		else rb.style.background = `url('css/img/arrow.svg') no-repeat`;
+		if (plus < 0) { lb.style.right = '10px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
+		if (plus > 0) { rb.style.left = '10px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
+		if (a) return;
+		obj.data = objsnames[nextObj];
+		dataToS.objs[nowposition].noserve = objsnames[nextObj];
+	}
+	createLoc = function() {
+		const areYouReady  = confirm("Вы уверены, что хотите создать локацию?");
+		if (!areYouReady) return;
+		dataToS.name = document.getElementById('nameOfLoc').value;
+		dataToS.texs = nextTexs;
+		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+		post(dataToS, '/crnewloc');
+	}
 }

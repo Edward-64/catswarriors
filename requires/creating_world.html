@@ -1,29 +1,106 @@
-<button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
+<button class="back-button" type="button" onclick="window.location='/';">Вернуться назад</button>
 <button class="form cr-w-button" type="button" onclick="createNewLocation();">Создать новую локацию</button>
 <button class="form cr-w-button" type="button" onclick="editExsisLocation();">Изменить существующую локацию</button>
 <div id="createNewLocation" style="display: none">
 	<div class="cw-setting">
 		<div class="cw-part-of-setting">
-			<p>Добавление объекта</p>
-			<div class="cw-block">
-				<button id="bleft" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="listingObjects(-1)" class="arrow-button an-l-arr"></button>
-				<object id="obj" type="image/svg+xml" data="/img/details/0.svg">Ваш браузер не поддерживает SVG</object>
-				<button id="bright" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="listingObjects(1)"></button>
+			<h2>Добавление объекта</h2>
+			<div id="crORadd">
+				<button class="form" style="width: 100%;margin-bottom: 10px;" onclick="showCreater()">Создать новый объект</button>
+				<button class="form" style="width: 100%;" onclick="showAdder()">Выбрать из существующих</button>
 			</div>
-			<div id="colors"></div>
-			<div>
-				x: <input id="x" class="form" style="width: 25px;margin: 3px 10px 3px 3px;">
+			<div id="loading" style="display: none"></div>
+			<div id="adder" style="display: none">
+				<div class="cw-block">
+					<button class="form" style="position: absolute;top: 0px;" onclick="turnBack('adder');" title="Переключиться на создание собственных объектов">&lt;</button>
+					<button id="bleft3" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="listingExObjects(-1)" class="arrow-button an-l-arr"></button>
+					<object id="exobj" class="obj" type="image/svg+xml" data="/img/details/0/0.svg">Ваш браузер не поддерживает SVG</object>
+					<button id="bright3" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="listingExObjects(1)"></button>
+				</div>
+			</div>
+			<div id="creater" style="display: none">
+				<div class="cw-block">
+					<button class="form" style="position: absolute;top: 0px;" onclick="turnBack('creater');" title="Переключиться на уже существующие объекты">&lt;</button>
+					<button id="bleft" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="listingObjects(-1)" class="arrow-button an-l-arr"></button>
+					<object id="obj" class="obj" type="image/svg+xml" data="/img/details/0.svg">Ваш браузер не поддерживает SVG</object>
+					<button id="bright" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="listingObjects(1)"></button>
+				</div>
+				<div id="colors"></div>
+			</div>
+			<div id="c">
+				x: <input id="x" class="form" style="width: 25px;margin: 3px 6px 3px 3px;">
 				y: <input id="y" class="form" style="width: 25px; margin: 3px">
 				<div style="display: inline-block;position: relative;top: 5px;">
-					<span class="lower-text" style="">x ∈ [-10; 160]<br>y ∈ [0; 31]</span>
+					<span class="lower-text">x ∈ [-10; 160]<br>y ∈ [-5; 30]</span>
 				</div>
-			<div id="q">
+			</div>
+			<div id="q" class="ul">
 				<input id="size" class="form" style="width: 20px;margin: 3px 3px 3px 3px;">
 				<span class="lower-text">Коэффициент увеличения</span>
 			</div>
-			<button class="form" onclick="applySizeXY();">Добавить</button>
+			<div class="ul">
+				<button class="form" onclick="applySizeXY();" style="width:100%">Добавить</button>
 			</div>
 		</div>
+		<div class="cw-part-of-setting">
+				<h2>Добавление пути</h2>
+				<span class="lower-text">
+				<div class="ul">
+					x: <input id="pathX" class="form" style="width: 25px;margin: 3px 10px 3px 3px;">
+					y: <input id="pathY" class="form" style="width: 25px; margin: 3px">
+					<div style="display: inline-block;position: relative;top: 5px;">x ∈ [0; 140]<br>y ∈ [0; 25]</div>
+				</div>
+				<div class="ul">
+					Позиция игрока после перемещения
+					<div>
+						x: <input id="endXP" class="form" style="width: 23px; margin: 3px;">
+						y: <input id="endYP" class="form" style="width: 23px; margin: 3px;">
+						<div style="display: inline-block;position: relative;top: 5px;">x ∈ [20; 140]<br>y ∈ [0; 30]</div> 
+					</div>
+				</div>
+				<div class="ul">
+					Ориентация игрока после перемещения
+					<button id="lOr" class="form" onclick="orientCW(0);" style="margin-right: 3px;width:40%">левая</button>
+					<button id="rOr" class="form" onclick="orientCW(1);" style="width:40%">правая</button>
+				</div></span>
+				<div class="ul">
+					Куда ведет путь
+					<div>
+						<button id="bleft2" class="arrow-button1 an-l-arr" style="background: url(&quot;css/img/lowlightarrow.svg&quot;) no-repeat; right: 0px;" onclick="listingLocs(-1)"></button>
+						<span id="typeOfTxts" class="lower-text">Лагерь</span>
+						<button id="bright2" class="arrow-button1 an-r-arr" style="background: url(&quot;css/img/lowarrow.svg&quot;) no-repeat; transform: scale(-1); left: 0px;" onclick="listingLocs(1)"></button>
+					</div>
+					<div>
+						<span class="lower-text">Или указать номер<input id="loc" class="form" style="width: 40px; margin: 0 3px 0 3px;" oninput="renameLoc(this.value)">локации</span>
+					</div>
+				</div>
+				<div class="ul">
+					<button class="form" onclick="addPath();" style="width:100%; margin-top:5px">Добавить</button>
+				</div>
+		</div>
+		<div class="cw-part-of-setting">
+			<h2>Прочее</h2>
+			<div class="ul">Название локации<br><input id="nameOfLoc" class="form" style="width:100%;padding-left: 3px"></div>
+			<div class="ul">
+				Текстура поля<br>
+				<button id="bleft1" class="arrow-button1 an-l-arr" style="background: url(&quot;css/img/lowlightarrow.svg&quot;) no-repeat; right: 0px;" onclick="listingTextures(-1)"></button>
+				<span id="typeOfTexs" class="lower-text">лес</span>
+				<button id="bright1" class="arrow-button1 an-r-arr" style="background: url(&quot;css/img/lowarrow.svg&quot;) no-repeat; transform: scale(-1); left: 0px;" onclick="listingTextures(1)"></button>
+			</div>
+			<div class="ul">
+				Недоступные зоны<br><span class="lower-text">Начальная точка
+				x: <input id="startX" class="form" style="width: 23px; margin: 3px;">
+				y: <input id="startY" class="form" style="width: 23px; margin: 3px">
+				<br>Конечная точка
+				x: <input id="endX" class="form" style="width: 23px; margin: 3px;">
+				y: <input id="endY" class="form" style="width: 23px; margin: 3px;">
+				<div>x ∈ [0; 160]<br>y ∈ [0; 30]</div></span>
+				<button class="form" onclick="addDisallow();" style="width:100%;margin: 3px;">Применить ограничение</button>
+			</div>
+		</div>
+	</div>
+	<div style="text-align: center; margin: 10px;">
+		<button class="form" style="font-size: 15pt;" onclick="createLoc();">Создать</button>
 	</div>
 	<div id="viewer">
 		<div  style="height: 5%"></div>
@@ -31,8 +108,16 @@
 		<div id="nearloc" style="height: 10%; width: 100%; background: #9ca754"></div>
 		<div id="headloc" style="position: relative;height: 30%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;);"></div>
 	</div>
-	<div id="added">
-		<p>Добавленные объекты</p>
+	<div class="cw-setting">
+		<div id="addedObj" class="cw-add">
+			<p>Добавленные объекты</p>
+		</div>
+		<div id="addedPaths" class="cw-add">
+			<p>Добавленные пути</p>
+		</div>
+		<div id="addedStops" class="cw-add">
+			<p>Добавленные недоступные зоны</p>
+		</div>
 	</div>
 </div>
 <div id="editExsisLocation" style="display: none;text-align: center;">

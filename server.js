@@ -13,6 +13,12 @@ function error500(res) {
 	res.end('Произошла ошибка на стороне сервера :(');
 }
 
+function error404(res) {
+	res.statusCode = 404;
+	res.setHeader('content-type', 'text/plain; charset=utf-8');
+	res.end('Не найдено');
+}
+
 function getStaticFile(res, path, json, contentType) {
 	if (json) {
 		res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -169,25 +175,27 @@ function afterCheckCookie(res, answ) {
 
 function getJSON(req, res, contentLength, cmd) {
 	let body = '';
-	if (contentLength > 1024) {
+	if (contentLength > 1048576) {
 		res.statusCode = 400;
 		res.setHeader('content-type', 'application/json; charset=utf-8');
-
-		res.end({ res: 3, answ: 'Слишком тяжелый запрос (более одного Кбайта)'});
+		res.end({ res: 3, answ: 'Слишком тяжелый запрос (более одного Мбайта)'});
 	}
 	req.on('data', (chunk) => {
 		body += chunk;
-		if (body > 1024) {
+		if (body > 1048576) {
 			res.statusCode = 400;
 			res.setHeader('content-type', 'application/json; charset=utf-8');
-			res.end({res: 3, answ: 'Слишком тяжелый запрос (более одного Кбайта)'});
+			res.end({res: 3, answ: 'Слишком тяжелый запрос (более одного Мбайта)'});
 		}
 	});
 	req.on('end', () => {
 		body = JSON.parse(body);
-		if (cmd === '/ac') ch.setCookie(body, res);
-		if (cmd === '/cc') createCharacter(body, req, res);
-		if (cmd === '/ar') parseAnotherRequest(body.require, res, req);
+		switch (cmd) {
+			case '/ac': ch.setCookie(body, res); break;
+			case '/cc': createCharacter(body, req, res); break;
+			case '/ar': parseAnotherRequest(body.require, res, req); break;
+			case '/crnewloc': cw.addLocation(res, body, __dirname); break;
+		}
 	});
 }
 
@@ -221,11 +229,9 @@ const server = http.createServer((req, res) => {
 	if (path) {
 		path = path[0];
 		if (path.startsWith('/img/')) {
-			n = path.match(/\d+/);
-			if (n) {
-				n = n[0];
-				path = path.replace(/\d+.*/, '')
-			}
+			n = path.match(/\d+/g);
+			if (n && n.length < 3) path = path.replace(/\d+.*/, '')
+			else n = null;
 		}
 	} else path = '/';
 
@@ -264,28 +270,42 @@ const server = http.createServer((req, res) => {
 				} else if (c < 0) {
 					afterCheckCookie(res, {res: 2, catName: db.cats[-c].catName}); //нет, предупреждение
 					didInfr('creatingTwoChar', -c);
-				} else if (c == 0) getStaticFile(res, '/requires/creating.html', 'json'); break; //да
+				} else getStaticFile(res, '/requires/creating.html', 'json'); break; //да
 			case '/load':
-				if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', null, 'text/html'); break;
+				if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', null, 'text/html')
+				else error404(res); break;
 			case '/world':
-				if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', null, 'text/html'); break;
+				if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', null, 'text/html')
+				else error404(res); break; //иначе дать другой тип этой страницы, а не 404
 			case '/activ':
 				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
 				else afterCheckCookie(res, {res: 2, catName: db.cats[c].catName}); break; //уже активировaн
+			case '/datalocs':
+				if (/creater/.test(p)) cw.getLocsName(res)
+				else error404(res); break;
+			case '/geted':
+				if (/creater/.test(p)) cw.getNamesDetails(res, __dirname)
+				else error404(res); break;
 			case '/img/textures/':
 				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
-				getStaticFile(res, `/img/details/${n}.svg`, null, 'image/svg+xml'); break;
+				if (!n) break;
+				if (n.length == 1) getStaticFile(res, `/img/details/${n[0]}.svg`, null, 'image/svg+xml')
+				else if (n.length == 2) getStaticFile(res, `/img/details/${n[0]}/${n[1]}.svg`, null, 'image/svg+xml'); break;
 			//на сервере фактический адрес должен быть /img/players/[pn игрока]/0.svg...1.svg...2.svg и т.д.
 			//на всякий случай проверь c > 0
 			case '/img/players/': //!!!
 				getStaticFile(res, `/img/players/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/css/img/button.png':
 				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
-			case '/css/img/arrow.svg':
-				getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
 			case '/img/indev.svg':
 				getStaticFile(res, '/img/indev.svg', null, 'image/svg+xml'); break;
+			case '/css/img/lowarrow.svg':
+				getStaticFile(res, '/css/img/lowarrow.svg', null, 'image/svg+xml'); break;
+			case '/css/img/lowlightarrow.svg':
+				getStaticFile(res, '/css/img/lowlightarrow.svg', null, 'image/svg+xml'); break;
+			case '/css/img/arrow.svg':
+				getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lightarrow.svg':
 				getStaticFile(res, '/css/img/lightarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowMsg.png':
@@ -298,27 +318,22 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/css/img/head.jpg', null, 'image/jpg'); break;
 			case '/dac':
 				ch.deleteCookie(res); break;
-			default:
-				res.statusCode = 404;
-				res.setHeader('content-type', 'text/plain; charset=utf-8');
-				res.end('Не найдено'); break;
+			default: error404(res); break;
 		}
 	}
-	const contentLength = req.headers['content-length'];
-	if (req.method = 'POST') {
-		switch(path) {
-			case '/dlf':
-				if (/admin/.test(p)) download(req, res, contentLength);
-				break;
-			case '/cc':
-				if (c == 0) getJSON(req, res, contentLength, path);
-				break;
-			case '/ac':
-				if (c <= 0) getJSON(req, res, contentLength, path);
-				break;
-			case '/ar':
-				getJSON(req, res, contentLength, path);
-				break;
+	if (req.method === 'POST') {
+		const contentLength = req.headers['content-length'];
+			switch (path) {
+				case '/dlf':
+					if (/admin/.test(p)) download(req, res, contentLength); break;
+				case '/cc':
+					if (c == 0) getJSON(req, res, contentLength, path); break;
+				case '/ac':
+					if (c <= 0) getJSON(req, res, contentLength, path); break;
+				case '/ar':
+					getJSON(req, res, contentLength, path); break;
+				case '/crnewloc':
+					if (/creater/.test(p)) getJSON(req, res, contentLength, path); break;
 		}
 	}
 }).listen(process.env.PORT || 8080, () => console.log('Server is running'));

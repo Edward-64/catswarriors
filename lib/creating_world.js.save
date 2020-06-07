@@ -22,7 +22,6 @@ class CreatingWorld {
 		return stack;
 	}
 	addLocation(res, data, dir) {
-		console.log(data);
 		let	{disa, name, objs, paths, texs} = data, len,
 			disallow = [], landscape = [], canRun = false;
 		res.setHeader('content-type', 'application/json; charset=utf-8');
