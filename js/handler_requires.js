@@ -233,44 +233,59 @@ function addQue(text, where) {
 
 let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObjects, applyColors, createLoc,
 	applySizeXY, preloadCW, orientCW, listingLocs, addPath, renameLoc, addDisallow, listingTextures,
-	showCreater, showAdder, listingExObjects, turnBack;
+	showCreater, showAdder, listingExObjects, turnBack, createNewLocationNoCreater;
 {
 	const dataToS = {objs: [{}], paths: [{to: []}], disa: []};
-	let	colors, obj, nextObj = 0, nextLoc = 1, nextTexs = 0, nextColor = 0, nextExObj = 0,
-		canRunPreload = true, x, y,
+	let	colors, obj, nextObj = 0, nextLoc = 1, nextTexs = 0, nextColor = 100, nextExObj = 0,
 		headloc, addedObj, addedPaths, addedStops, crORadd, adder, creater, loading,
 		nowposition = 0, nowpsPaths = 0,
-		orient, tmporient, locsname, objsnames;
+		locsnames, objsExNames, objsNames, texsNames,
+		canRunPreload = true, x, y, orient;
 
 	preloadCW = function() {
-		req.open('GET', '/datalocs', true);
+		req.open('GET', '/getocw', true);
 		req.send();
 		req.onload = () => {
-			if (req.status !== 200) alert('Произошла ошибка на сервере')
-			else locsname = JSON.parse(req.response);
+			if (req.status !== 200) {
+				//загрузить не удалось
+			} else {
+				const {add, data} = JSON.parse(req.response);
+				locsnames = add.locsnames; objsExNames = add.objsExNames;
+				objsNames = add.objsNames; texsNames = add.texsNames;
+				document.getElementById('createNewLocation').innerHTML = data;
+
+				for(let i = 0; i <= 160; i++) dataToS.disa[i] = [];
+
+				addQue('Ширина и высота игрового поля условно делится на 160 и 30 частей соответственно. Следовательно, координаты (0, 0) расположат ' +
+				'объект в нижнем левом углу, а (160, 30) в правом верхнем.', document.getElementById('c'));
+				addQue('Значение больше нуля увеличивает объект, а меньше нуля — уменьшает его.<br>'+
+				'Например, коэффициент 4 увеличит объект в четыре раза, а 0.5 уменьшит в два раза.',
+				document.getElementById('q'));
+
+				(colors = document.getElementById('colors')).innerHTML = generateColors(0);
+				document.getElementById('viewer').style.width = `${document.querySelector('html').clientWidth / 2}px`;
+				document.getElementById('viewer').style.height = `${document.querySelector('html').clientHeight / 2}px`;
+
+				headloc = document.querySelector('#headloc'); addedObj = document.getElementById('addedObj');
+				addedPaths = document.getElementById('addedPaths'); addedStops = document.getElementById('addedStops');
+				crORadd = document.getElementById('crORadd'); adder = document.getElementById('adder');
+				creater = document.getElementById('creater'); loading = document.getElementById('loading');
+				obj = document.getElementById('obj');
+
+				x = headloc.clientWidth / 160;
+				y = headloc.clientHeight / 30;
+
+				canRunPreload = false;
+			}
 		}
-		for(let i = 0; i <= 160; i++) {
-			dataToS.disa[i] = [];
-		}
-		addQue('Ширина и высота игрового поля условно делится на 160 и 30 частей соответственно. Следовательно, координаты (0, 0) расположат ' +
-		'объект в нижнем левом углу, а (160, 30) в правом верхнем.', document.getElementById('c'));
-		addQue('Значение больше нуля увеличивает объект, а меньше нуля — уменьшает его.<br>'+
-		'Например, коэффициент 4 увеличит объект в четыре раза, а 0.5 уменьшит в два раза.',
-		document.getElementById('q'));
-		(colors = document.getElementById('colors')).innerHTML = generateColors(0);
-		document.getElementById('viewer').style.width = `${document.querySelector('html').clientWidth / 2}px`;
-		document.getElementById('viewer').style.height = `${document.querySelector('html').clientHeight / 2}px`;
-		headloc = document.querySelector('#headloc'); addedObj = document.getElementById('addedObj');
-		addedPaths = document.getElementById('addedPaths'); addedStops = document.getElementById('addedStops');
-		crORadd = document.getElementById('crORadd'); adder = document.getElementById('adder');
-		creater = document.getElementById('creater'); loading = document.getElementById('loading');
 	}
 	listingTextures = function(plus) {
+		if (!texsNames) return;
 		let a = false;
 		const lb = document.getElementById('bleft1'),
 			rb = document.getElementById('bright1'),
 			name = document.getElementById('typeOfTexs'),
-			maxTexs = texturesdb.length - 1;
+			maxTexs = texsNames.length - 1;
 		nextTexs = (nextTexs += plus) < 0 ? (a = true, 0) : maxTexs < nextTexs ? (a = true, maxTexs) : nextTexs;
 		if (nextTexs == 0) { lb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
 		else lb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
@@ -279,12 +294,12 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		if (plus < 0) { lb.style.right = '5px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
 		if (plus > 0) { rb.style.left = '5px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
 		if (a) return;
-		name.innerHTML = texturesdb[nextTexs].name;
-		headloc.style.background = `url("/img/textures/${nextTexs}.svg")`
-		dataToS.t = nextTexs;
+		name.innerHTML = texsNames[nextTexs].name;
+		headloc.style.background = `url(${texsNames[nextTexs].texture})`
+		dataToS.texs = texsNames[nextTexs].texture;
 	}
 	addDisallow = function() {
-		++nextColor;
+		nextColor += 20;
 		const div = document.createElement('div'),
 			startX = Number.parseInt(document.getElementById('startX').value),
 			startY = Number.parseInt(document.getElementById('startY').value),
@@ -294,7 +309,7 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 			shellNewDisa = document.createElement('div'),
 			col = document.createElement('div');
 		let	biggerX, biggerY, lowerX, lowerY;
-		if (nextColor >= colorsdb.length) nextColor = 0;
+		if (nextColor > 255) nextColor = 100;
 		if (startX == endX || startY == endY) { alert('Конечная и начальная точка не могут быть равны'); return; }
 		if (startX < 0 || startX > 160 || startY < 0 || startY > 30) {
 			alert('Координаты начальной точки вышли за пределы допустимого диапазона');
@@ -331,14 +346,14 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		div.style.height = `${Math.abs(endY - startY) * y}px`;
 		div.style.left = `${(lowerX) * x}px`;
 		div.style.bottom = `${(lowerY) * y}px`;
-		div.style.background = colorsdb[nextColor];
+		div.style.background = `rgb(${nextColor}, 0, 0)`;
 		div.style.opacity = '.8';
 		headloc.appendChild(div);
 
 		col.style.width = '100px';
 		col.style.height = '20px';
 		col.innerHTML = `<span class="lower-text">(${lowerX}, ${lowerY})∪(${biggerX}, ${biggerY})</span>`;
-		col.style.background = colorsdb[nextColor];
+		col.style.background = `rgb(${nextColor}, 0, 0)`;
 		col.style.display = 'inline-block';
 		shellNewDisa.style.marginBottom = '5px';
 		shellNewDisa.appendChild(col);
@@ -362,22 +377,28 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 
 	}
 	renameLoc = function(v) {
-		if (!locsname) return; v = Number.parseInt(v);
-		nextLoc = v || 1;
-		document.getElementById('typeOfTxts').textContent = locsname[v] ? locsname[v] : '[локация не существует]';
+		if (!locsnames) return;
+		v = Number.parseInt(v);
+		v = v ? v : -1;
+		nextLoc = v;
+		document.getElementById('typeOfTxts').textContent = locsnames[v] ? locsnames[v] : '[локация не существует]';
+	}
+	createNewLocationNoCreater = function() {
+		if (canRunPreload) preloadCW();
+		resizeWindow(200, 0);
+		document.getElementsByTagName('button')[1].style.display = 'none';
+		document.getElementById('createNewLocation').style.display = 'block';
 	}
 	createNewLocation = function() {
-		if (canRunPreload) { preloadCW(); canRunPreload = false; }
-		resizeWindow(200, 0); obj = document.getElementById('obj');
+		if (canRunPreload) preloadCW();
+		resizeWindow(200, 0);
 		document.getElementsByTagName('button')[1].style.backgroundColor = '#976b3c';
 		document.getElementsByTagName('button')[2].style.backgroundColor = '#bb8b54';
 		document.getElementById('editExsisLocation').style.display = 'none';
 		document.getElementById('createNewLocation').style.display = 'block';
-		x = headloc.clientWidth / 160;
-		y = headloc.clientHeight / 30;
 	}
 	editExsisLocation = function() {
-		resizeWindow(200, 0); obj = document.getElementById('obj');
+		resizeWindow(200, 0);
 		document.getElementsByTagName('button')[2].style.backgroundColor = '#976b3c';
 		document.getElementsByTagName('button')[1].style.backgroundColor = '#bb8b54';
 		document.getElementById('createNewLocation').style.display = 'none';
@@ -386,7 +407,7 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 	orientCW = function(v) {
 		const lOr = document.getElementById('lOr'),
 			rOr = document.getElementById('rOr');
-		tmporient = v;
+		orient = v;
 		if (v) {
 			rOr.style.background = '#976b3c';
 			lOr.style.background = '#bb8b54';
@@ -396,21 +417,20 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		}
 	}
 	listingLocs = function(plus) {
-		if (!locsname) return;
+		if (!locsnames) return;
 		let a = false;
-		nextLoc = (nextLoc += plus) < 1 ? (a = true, 1) : locsname[0] < nextLoc ? (a = true, locsname[0]) : nextLoc;
+		nextLoc = (nextLoc += plus) < 1 ? (a = true, 1) : locsnames[0] < nextLoc ? (a = true, locsnames[0]) : nextLoc;
 		const lb = document.getElementById('bleft2'),
 			rb = document.getElementById('bright2'),
 			name = document.getElementById('typeOfTxts');
 		if (nextLoc == 1) { lb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
 		else lb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
-		if (nextLoc == locsname[0]) { rb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
+		if (nextLoc == locsnames[0]) { rb.style.background = `url('css/img/lowlightarrow.svg') no-repeat`; }
 		else rb.style.background = `url('css/img/lowarrow.svg') no-repeat`;
 		if (plus < 0) { lb.style.right = '5px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
 		if (plus > 0) { rb.style.left = '5px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
 		if (a) return;
-		name.innerHTML = locsname[nextLoc];
-		dataToS.paths[nowpsPaths].to[3] = nextLoc;
+		name.innerHTML = locsnames[nextLoc];
 	}
 	addPath = function() {
 		const pathX = Number.parseInt(document.getElementById('pathX').value),
@@ -437,7 +457,7 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		}
 		dataToS.paths[n].to[0] = endX;
 		dataToS.paths[n].to[1] = endY;
-		dataToS.paths[n].to[2] = tmporient;
+		dataToS.paths[n].to[2] = orient;
 		dataToS.paths[n].to[3] = nextLoc;
 
 		dataToS.paths[n].minChunk = [pathX, pathY];
@@ -454,8 +474,9 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		div.innerHTML = `<div style="font-size: 6pt;">Путь №${nextLoc}</div>`
 		headloc.appendChild(div);
 		shellNewPath.style.marginBottom = '5px';
-		shellNewPath.innerHTML = `<div class="lower-text">Путь №${nextLoc} ведет в ${locsname[nextLoc]}</div>`;
+		shellNewPath.innerHTML = `<div class="lower-text">Путь №${nextLoc} ведет в ${locsnames[nextLoc]}</div>`;
 		b.classList.add('form');
+		b.style.marginTop = '3px';
 		b.textContent = 'удалить';
 		b.onclick = () => {
 			shellNewPath.remove();
@@ -483,7 +504,8 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		}
 		dataToS.objs[nowposition].chunk = [createX, createY];
 		dataToS.objs[nowposition].s = createS;
-		dataToS.objs[nowposition].n = nextObj;
+		if (objsNames[nextObj]) dataToS.objs[nowposition].url = objsNames[nextObj].url;
+		if (objsNames[nextObj].noserve) dataToS.objs[nowposition].noserve = objsExNames[nextObj];
 		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
 		let	newobj = obj.contentDocument.all[0].cloneNode(true),
 			newobjadd = obj.contentDocument.all[0].cloneNode(true),
@@ -524,15 +546,27 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 	}
 	changeSVG = function(from, to) {
 		let find = obj.contentDocument.querySelectorAll('path');
-		for(let i = 0; i < find.length; i++) {
+		for (let i = 0; i < find.length; i++) {
+			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
+				find[i].attributes.fill.value = to;
+			}
+			if (find[i].attributes.stroke && find[i].attributes.stroke.value.toLowerCase() == from.toLowerCase()) {
+				find[i].attributes.stroke.value = to;
+			}
+		}
+		find = obj.contentDocument.querySelectorAll('ellipse');
+		for (let i = 0; i < find.length; i++) {
 			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
 				find[i].attributes.fill.value = to;
 			}
 		}
-		find = obj.contentDocument.querySelectorAll('ellipse');
-		for(let i = 0; i < find.length; i++) {
-			if (find[i].attributes.fill.value.toLowerCase() == from.toLowerCase()) {
-				find[i].attributes.fill.value = to;
+		find = obj.contentDocument.querySelectorAll('linearGradient');
+		for (let i = 0; i < find.length; i++) {
+			for (let j = 0; j < find[i].childNodes.length; j++) {
+				if (find[i].childNodes[j].nodeName === '#text') continue;
+				if (find[i].childNodes[j].attributes['stop-color'].value.toLowerCase() == from.toLowerCase()) {
+					find[i].childNodes[j].attributes['stop-color'].value = to;
+				}
 			}
 		}
 	}
@@ -548,20 +582,21 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		dataToS.objs[nowposition].colors = [];
 		dataToS.objs[nowposition].d = [];
 		let	formColors = '<form name="color">';
-		for(let i = 0; i < objectsdb[n].d.length; i++) {
-			formColors += `<input style="margin: 1px" class="form" type="color" value="${objectsdb[n].d[i]}">`;
-			dataToS.objs[nowposition].colors.push(objectsdb[n].d[i]);
-			dataToS.objs[nowposition].d.push(objectsdb[n].d[i]);
+		for(let i = 0; i < objsNames[n].d.length; i++) {
+			formColors += `<input style="margin: 1px" class="form" type="color" value="${objsNames[n].d[i]}">`;
+			dataToS.objs[nowposition].colors.push(objsNames[n].d[i]);
+			dataToS.objs[nowposition].d.push(objsNames[n].d[i]);
 		}
 		formColors += '<button style="width: 100%; margin-top: 3px" class="form" type="button" onclick="applyColors();">Применить другой цвет</button></form>';
 		return formColors;
 	}
 	listingObjects = function(plus) {
-		if (!plus) { obj.data = objectsdb[nextObj].url; return; }
+		if (!plus) { obj.data = objsNames[nextObj].url; return; }
+		if (!objsNames) return;
 		let a = false;
 		const lb = document.getElementById('bleft'),
 			rb = document.getElementById('bright'),
-			endObj = objectsdb.length - 1;
+			endObj = objsNames.length - 1;
 		nextObj = (nextObj += plus) < 0 ? (a = true, 0) : nextObj > endObj ? (a = true, endObj) : nextObj;
 		if (nextObj == 0) { lb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
 		else lb.style.background = `url('css/img/arrow.svg') no-repeat`;
@@ -570,64 +605,40 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		if (plus < 0) { lb.style.right = '10px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
 		if (plus > 0) { rb.style.left = '10px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
 		if (a) return;
-		obj.data = objectsdb[nextObj].url;
+		obj.data = objsNames[nextObj].url;
 		obj.onload = () => { colors.innerHTML = generateColors(nextObj) }
 	}
 	showCreater = function() {
+		obj = document.getElementById('obj');
+		nextObj = 0;
 		crORadd.style.display = 'none';
 		creater.style.display = 'block';
+		obj.data = objsNames[nextObj].url;
 	}
 	showAdder = function() {
+		obj = document.getElementById('exobj');
+		nextObj = 0;
 		crORadd.style.display = 'none';
-		if (!objsnames) {
-			req.open('GET', '/geted', true);
-			req.send();
-			loading.style.display = 'block';
-			const loadingTick = setInterval(() => {
-				loading.textContent = 'Загрузка ';
-				setTimeout(() => { loading.textContent = 'Загрузка .' }, 400);
-				setTimeout(() => { loading.textContent = 'Загрузка . .' }, 800);
-				setTimeout(() => { loading.textContent = 'Загрузка . . .' }, 1200);
-			}, 1600);
-			req.onload = () => {
-				const res = JSON.parse(req.responseText);
-				if (res.res == 0) {
-					alert('Локация не создана: ' + res.msg);
-				} else if (res.res == 1) {
-					clearInterval(loadingTick);
-					loading.style.display = 'none';
-					adder.style.display = 'block';
-					objsnames = res.data;
-
-					obj = document.getElementById('exobj');
-					nextObj = 0;
-					dataToS.objs[nowposition].noserve = '/img/details/0/0.svg';
-
-					console.log(res.data);
-				}
-			}
-		}
+		adder.style.display = 'block';
+		dataToS.objs[nowposition].noserve = objsExNames[nextObj];
+		obj.data = objsExNames[nextObj];
 	}
 	turnBack = function(type) {
 		if (type == 'adder') {
-			obj = document.getElementById('obj');
 			delete dataToS.objs[nowposition].noserve;
-			nextObj = 0;
 			adder.style.display = 'none';
-			creater.style.display = 'block';
+			showCreater();
 		} else if (type == 'creater') {
 			creater.style.display = 'none';
-			adder.style.display = 'block';
-			obj = document.getElementById('exobj');
-			nextObj = 0;
-			dataToS.objs[nowposition].noserve = '/img/details/0/0.svg';
+			showAdder();
 		}
 	}
 	listingExObjects = function(plus) {
+		if (!objsExNames) return;
 		let a = false;
 		const lb = document.getElementById('bleft3'),
 			rb = document.getElementById('bright3'),
-			endObj = objsnames.length - 1;
+			endObj = objsExNames.length - 1;
 		nextObj = (nextObj += plus) < 0 ? (a = true, 0) : nextObj > endObj ? (a = true, endObj) : nextObj;
 		if (nextObj == 0) { lb.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
 		else lb.style.background = `url('css/img/arrow.svg') no-repeat`;
@@ -636,15 +647,29 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		if (plus < 0) { lb.style.right = '10px'; setTimeout(() => { lb.style.right = '0px' }, 500); }
 		if (plus > 0) { rb.style.left = '10px'; setTimeout(() => { rb.style.left = '0px' }, 500); }
 		if (a) return;
-		obj.data = objsnames[nextObj];
-		dataToS.objs[nowposition].noserve = objsnames[nextObj];
+		obj.data = objsExNames[nextObj];
+		dataToS.objs[nowposition].noserve = objsExNames[nextObj];
 	}
 	createLoc = function() {
 		const areYouReady  = confirm("Вы уверены, что хотите создать локацию?");
 		if (!areYouReady) return;
 		dataToS.name = document.getElementById('nameOfLoc').value;
-		dataToS.texs = nextTexs;
 		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
+
 		post(dataToS, '/crnewloc');
+		req.onload = () => {
+			const res = JSON.parse(req.responseText);
+			if (req.status !== 200) alert('Локация не создана из-за ошибки на сервере. ' +
+			'Данные сохранены, поэтому Вы можете попробовать отправить данные снова, ' +
+			'не создавая локацию заново, даже если перезагрузите страницу и визульно редактор будет пустой.')
+			else {
+				if (res.res == 0) {
+					alert('Локация не создана: ' + res.msg);
+				} else if (res.res == 1) {
+					alert('Локация создана');
+					console.log(res.data);
+				}
+			}
+		}
 	}
 }

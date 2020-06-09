@@ -26,6 +26,7 @@ body {
 	height: 100%;
 	bottom: -5px;
 	position: relative;
+	z-index: 120;
 }
 
 .cat {
@@ -48,6 +49,14 @@ body {
 	border: 2px solid #0f0905;
 	border-radius: 5px;
 	padding: 3px;
+}
+
+.info-window {
+	position: absolute;
+	z-index: 120;
+	top: 5px;
+	left: 5px;
+	display: none;
 }
 
 .lowpanel {

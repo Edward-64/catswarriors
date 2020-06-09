@@ -7,10 +7,10 @@ const http = require('http'),
 	ch = require('./lib/cookie.js').include(db),
 	cw = require('./lib/creating_world.js').include(db, world);
 
-function error500(res) {
-	res.statusCode = 500;
+function error500(res, text = 'Произошла ошибка на стороне сервера :(', code = 500) {
+	res.statusCode = code;
 	res.setHeader('content-type', 'text/plain; charset=utf-8');
-	res.end('Произошла ошибка на стороне сервера :(');
+	res.end(text);
 }
 
 function error404(res) {
@@ -31,7 +31,7 @@ function getStaticFile(res, path, json, contentType) {
 	} else {
 		fs.readFile(__dirname + path, (err, data) => {
 			if (err) {
-				error500(res);
+				error500(res, 'Произошла ошибка на стороне сервера или запрошен несуществующий ресурс. Error in getStaticFile.');
 				//логинируй ошибку
 			} else {
 				res.setHeader('content-type', contentType + ';charset=utf-8');
@@ -114,14 +114,13 @@ function createCharacter(rawData, req, res) {
 						dateOfReg: Date.now(),
 						lastVisitOfSite: Date.now(),
 						infractions: {},
-						servInfractions: {},
 						game: {
 							public: {
 								health: 100,
 								moons: 1,
 								speed: 50,
 								size: 0.3,
-								lastPlace: [20, 0, 0, 1],
+								lastPlace: [20, 0, 0, 4],
 								status: 'unactiv',
 								last: Date.now() - 15 * 60001,
 							}
@@ -129,7 +128,19 @@ function createCharacter(rawData, req, res) {
 					};
 					editDBs.save('db');
 					ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
-					sendCrJSON({ res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
+					fs.mkdir(__dirname + `/databases/hard/${pnNewCat}`, (err) => {
+						if (err) console.log(err) //лог
+						else {
+							const data = JSON.stringify({
+								servInfractions: {},
+								knownPlayers: {},
+							});
+							fs.writeFile(__dirname + `/databases/hard/${pnNewCat}/data.js`, data, (err) => {
+								if (err) console.log(err) //log
+								else sendCrJSON({ res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
+							});
+						}
+					});
 				}
 			}
 		}
@@ -154,14 +165,14 @@ function download(req, res, contentLength, path) {
 	}
 	let form = new formidable.IncomingForm();
 	form.parse(req, (err, fields, files) => {
-		if(err) error500(res);
+		if(err) error500(res, 'Произошла ошибка на стороне сервера. Error in download, part of formidable.');
 		if(files.photo.size > 1048576) {
 			res.statusCode = 400;
 			res.setHeader('content-type', 'text/plain; charset=utf-8')
 			res.end('Слишком тяжелый файл (более 1-го Мбайта)');
 		}
 		fs.readFile(files.photo.path, (err, data) => {
-			if(err) error500(res)
+			if(err) error500(res, 'Произошла ошибка на стороне сервера. Error in download, part of server.')
 			else fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => { if (err) error500(res) });
 		});
 		getStaticFile(res, '/index.html', null, 'text/html');
@@ -194,7 +205,7 @@ function getJSON(req, res, contentLength, cmd) {
 			case '/ac': ch.setCookie(body, res); break;
 			case '/cc': createCharacter(body, req, res); break;
 			case '/ar': parseAnotherRequest(body.require, res, req); break;
-			case '/crnewloc': cw.addLocation(res, body, __dirname); break;
+			case '/crnewloc': cw.addLocation(res, body, __dirname, editDBs); break;
 		}
 	});
 }
@@ -208,10 +219,12 @@ function parseAnotherRequest(require, res, req) {
 			else afterCheckCookie(res, {res: 2}); //нет прав
 		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
 	} else if (require === 'тм' || /творить мир/i.test(require)) {
-		if (c > 0) {
+		if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
+		else getStaticFile(res, '/requires/creating_world_no_creater.html', [-350, -280]);
+/*		if (c > 0) {
 			if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
 			else afterCheckCookie(res, {res: 2});
-		} else afterCheckCookie(res, {res: 0});
+		} else afterCheckCookie(res, {res: 0}); */
 	}  else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
 }
 
@@ -274,18 +287,38 @@ const server = http.createServer((req, res) => {
 			case '/load':
 				if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', null, 'text/html')
 				else error404(res); break;
-			case '/world':
+/*			case '/world':
 				if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', null, 'text/html')
-				else error404(res); break; //иначе дать другой тип этой страницы, а не 404
+				else getStaticFile(res, '/requires/creating_world_no_creater.html', null, 'text/html'); break; */
 			case '/activ':
 				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
 				else afterCheckCookie(res, {res: 2, catName: db.cats[c].catName}); break; //уже активировaн
-			case '/datalocs':
-				if (/creater/.test(p)) cw.getLocsName(res)
-				else error404(res); break;
-			case '/geted':
-				if (/creater/.test(p)) cw.getNamesDetails(res, __dirname)
-				else error404(res); break;
+			case '/getocw':
+				let objsExNames;
+				cw.getNamesExDetails(__dirname);
+				cw.once('finishGetNamesExDetails', (err, e) => {
+					if (err) return; //логинируй
+					objsExNames = e;
+					cw.getNamesDetails(__dirname);
+					cw.once('finishGetNamesDetails', (err, f) => {
+						if (err) return; //логинируй
+						if (/creater/.test(p)) {
+							getStaticFile(res, '/requires/creating_world_after.html', {
+								locsnames: cw.getLocsName(),
+								objsExNames,
+								objsNames: f,
+								texsNames: world.info.texs,
+							});
+						} else {
+							getStaticFile(res, '/requires/creating_world_after_no_creater.html', {
+								objsExNames,
+								objsNames: f,
+								texsNames: world.info.texs,
+							});
+						}
+					});
+				});
+				break;
 			case '/img/textures/':
 				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':

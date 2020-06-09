@@ -1,14 +1,35 @@
 'use strict'
 const HOST = location.origin.replace(/^http/, 'ws'),
-	place = document.getElementById('headloc'),
-	mouselistener = document.getElementById('mouselistener'),
-//	gameplace = document.getElementById('place'),
-	details = document.getElementById('details'),
-	cats = document.getElementById('cats'),
-	CATS = {}, headloc = document.querySelector('#headloc');
+	headloc = document.querySelector('#headloc');
 let   x = Math.floor(headloc.clientWidth / 160),
 	y = Math.floor(headloc.clientHeight / 30),
 	ws = new WebSocket(HOST), PN = null;
+const	details = document.getElementById('details'),
+	cats = document.getElementById('cats'),
+	CATS = {},
+	app = {
+		known: JSON.parse(localStorage.getItem('knownPlayers')),
+		nearloc: document.getElementById('nearloc'),
+		info: document.getElementById('info'),
+		fillInfoAsCat(pn) {
+			this.info.innerHTML = '';
+			if (!this.known) {
+				if (ws.readyState === WebSocket.OPEN) {
+					ws.send(JSON.stringify({ type: 107 }));
+				};
+//			} else if (pn == PN) {
+//				this.info.innerHTML = 'Это Вы';
+			} else if (Object.keys(this.known).length == 0) {
+				this.info.innerHTML = 'Это неизвестный для Вас котик';
+			} else {
+				Object.keys(this.known[pn]).forEach(x => {
+					const div = document.createElement('div');
+					div.innerHTML = this.known[pn][x].item + this.known[pn][x].value;
+					this.info.appendChild(div);
+				});
+			}
+		}
+	};
 
 window.onresize = () => {
 	x = Math.floor(headloc.clientWidth / 160);
@@ -41,13 +62,21 @@ function reconnect() {
 function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 70;
 	if (chunk[2]) { scale = 'scale(1)'; widthCat = 200; }
-	div.innerHTML = `<div></div><img style="transform: ${scale}" src="/img/players/0.svg" width="${265 * CATS[pn].size}" height="${120 * CATS[pn].size}">` +
-	`<img src="/css/img/lowMsg.png" style="position: absolute; bottom: ${120 * CATS[pn].size - 7}px; right: 0px; display: none">`;
+	div.innerHTML = `</div><div></div><img style="transform: ${scale}"` +
+	`src="/img/players/0.svg" width="${265 * CATS[pn].size}" height="${120 * CATS[pn].size}"><img src="/css/img/lowMsg.png"` +
+	` style="position: absolute; bottom: ${120 * CATS[pn].size - 7}px; right: 0px; display: none">`;
 	div.classList.add('cat');
 	div.id = `cat${pn}`;
 	div.style.left = `${chunk[0] * x - widthCat * CATS[pn].size}px`;
 	div.style.bottom = `${chunk[1] * y}px`;
 	div.style.zIndex = 100 - chunk[1];
+	div.onmouseover = () => {
+		app.fillInfoAsCat(pn);
+		app.info.style.display = 'block';
+	}
+	div.onmouseout = () => {
+		app.info.style.display = 'none';
+	}
 	cats.appendChild(div);
 }
 
@@ -172,15 +201,19 @@ ws.onmessage = (e) => {
 					CATS[data.loc.fill[j].pn].steping = null;
 					addCat(data.loc.fill[j].pn, data.loc.fill[j].lastPlace);
 				}
-				place.style.background = `url('${data.loc.surface}')`;
+				headloc.style.background = `url('${data.loc.surface}')`;
+				app.nearloc.style.background = `url('${data.loc.surface}')`;
+				app.nearloc.style.opacity = '.7';
 				l = data.loc.landscape.length;
 				for(let j = 0; j < l; j++) {
 					const newdetail = document.createElement('img');
+					if (!data.loc.landscape[j].disallow) newdetail.style.pointerEvents = 'none';
 					newdetail.src = data.loc.landscape[j].texture;
 					newdetail.width = data.loc.landscape[j].width;
 					newdetail.height = data.loc.landscape[j].height;
 					newdetail.style.position = 'absolute';
-					newdetail.style.zIndex = 100 -  data.loc.landscape[j].chunk[1];
+					if (data.loc.landscape[j].low) newdetail.style.zIndex = data.loc.landscape[j].low
+					else newdetail.style.zIndex = 100 -  data.loc.landscape[j].chunk[1];
 					newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
 					newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
 					details.appendChild(newdetail);
@@ -211,34 +244,7 @@ ws.onmessage = (e) => {
 	}
 }
 
-
-
-/*ws.onmessage = (e) => {
-	if (ws.readyState === WebSocket.OPEN) {
-		const data = JSON.parse(e.data);
-		if (data.type == 6) {
-			if(data.pn != CATS[0].pn) addMeow(data.pn, data.msg);
-		} else if (data.type == 5) {
-			if (data.pn != CATS[0].pn) animation(data.pn, data.chunk, CATS[data.pn].chunk, data.speed || 50);
-		} else if (data.type == 4) {
-
-		} else if (data.type == 3) {
-
-		} else if (data.type == 7) {
-			cats.innerHTML = ''; details.innerHTML = '';
-			for(let cat in CATS) {
-				if (cat == 0) continue;
-				delete CATS[cat];
-			} console.log(data);
-			addCat(0, data.chunk);
-			CATS[0].chunk = [data.chunk[0], data.chunk[1]];
-		} else if (data.type == 8) {
-			if (data.pn != CATS[0].pn) {
-				
-				delete CATS[data.pn];
-			}
-*/
-mouselistener.onmousedown = (e) => {
+headloc.onmousedown = (e) => {
 	const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight,
 	chunk = serveChunk([e.pageX, e.pageY - excess]);
 	updateChunk(chunk);
