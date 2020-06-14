@@ -1,0 +1,2 @@
+{"iteractions":[],"knownPlayers": {}}
+
