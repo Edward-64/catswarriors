@@ -221,3 +221,45 @@ body {
 	left: 10px;
 	z-index: 100;
 }
+
+.color-cch {
+	display: inline-block;
+	border-radius: 5px;
+	border: 2px solid #0f0905;
+	margin: 1px;
+	width: 20%;
+	height: 25px;
+}
+
+.field-cch {
+	display: flex;
+	margin: 5px 0;
+}
+
+.part-of-field-start-cch {
+	width: 49%;
+/*	display: flex; 
+	align-items: center; */
+}
+
+.part-of-field-end-cch {
+	display: flex;
+	width: 49%;
+	justify-content: center;
+}
+
+.as-form {
+	margin-top: 10px;
+	border-radius: 5px;
+	background-color: #bb8b5466;
+	border: 2px solid #0f0905;
+	padding: 5px;
+}
+
+.cch-viewer {
+	width: 49%;
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-direction: column;
+}

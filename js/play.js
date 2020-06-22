@@ -34,6 +34,7 @@ const	details = document.getElementById('details'),
 			}
 		},
 		fillIteraction(pn, requiredData, interfaces, funcs, action, doLess, sendedFromServer) {
+				console.log('fillIteraction', pn, requiredData, interfaces, funcs, action, doLess, sendedFromServer);
 				this.itActWin.style.display = 'block';
 				if (!doLess) this.iteractions.push({pn, requiredData, action});
 
@@ -63,6 +64,19 @@ const	details = document.getElementById('details'),
 			firstDiv.innerHTML = text;
 			this.next.appendChild(firstDiv);
 		},
+		turnOnLowerStack() {
+			this.iteractions.pop(); //this.send(109, {code: 'del'});
+			let l = this.iteractions.length;
+			if (l) {
+				const a = this.iteractions[--l].action,
+					served = [this.replaceToCatName(app.iteractions[l].pn,this.runTheActionWith[a].add.interfaces[0]),
+						    this.runTheActionWith[a].add.interfaces[1],
+						    this.runTheActionWith[a].add.interfaces[2]]
+				this.fillIteraction(app.iteractions[l].pn, this.iteractions[l].requiredData,
+				served, this.runTheActionWith[a].add.funcs, a, true);
+			} else { this.itActWin.childNodes[1].childNodes[2].textContent = '0'; this.itActWin.style.display = 'none' };
+
+		},
 		showAsksAboutYou(pn, data) {
 			this.nextClear('Вы можете оставлять поля пустыми, если не хотите отвечать на какой-либо вопрос.');
 			const line = [
@@ -89,23 +103,13 @@ const	details = document.getElementById('details'),
 				});
 				this.send(106, {about: buffer, to: pn});
 				document.getElementById('next').style.display = 'none';
-				this.iteractions.pop(); //this.send(109, {code: 'del'});
-				let l = this.iteractions.length;
-				if (l) {
-					--l; this.fillIteraction(app.iteractions[l].pn, this.iteractions[l].requiredData,
-					this.iteractions[l].interfaces, this.iteractions[l].funcs, true);
-				} else { this.itActWin.childNodes[1].childNodes[2].textContent = '0'; this.itActWin.style.display = 'none'; }
+				this.turnOnLowerStack();
 			}
 			endDiv.appendChild(b); app.next.appendChild(endDiv);
 		},
 		hideAsksAboutYou(pn) {
 			this.send(106, {about: null, to: pn});
-			this.iteractions.pop(); //this.send(109, {code: 'del'});
-			let l = this.iteractions.length;
-			if (l) {
-				--l; this.fillIteraction(app.iteractions[l].pn, this.iteractions[l].requiredData,
-				this.iteractions[l].interfaces, this.iteractions[l].funcs, true);
-			} else { this.itActWin.childNodes[1].childNodes[2].textContent = '0'; this.itActWin.style.display = 'none' };
+			this.turnOnLowerStack();
 		},
 		simpleNextWindow(pn, data) { //0 - text, 1-2 are name of buttons, 3-4 are funcs
 			this.nextClear(data[0]);
@@ -340,32 +344,14 @@ function animation(pn, s) {
 	clearTimeout(CATS[pn].steping); clearInterval(CATS[pn].listingframes); CATS[pn].lastPlace = s.oldchunk;
 	const cat = document.getElementById(`cat${pn}`),
 		step = (s.newchunk[1] - s.oldchunk[1]) * CATS[pn].speed / s.dis;
-//		orient = s.newchunk[0] - s.oldchunk[0],
-//		pic = document.getElementById(`cat${pn}`).childNodes[2].style;
 	let   widthCat = 200 * CATS[pn].size;
+
 	CATS[pn].lastPlace[2] = s.newchunk[2];
 	changeOrient(pn, s.newchunk[2], widthCat);
-//	if (s.newchunk[2]) {
-//		cat.childNodes[1].style.transform = 'scale(1)';
-//		document.getElementById(`cat${pn}`).childNodes[0].style.textAlign = 'right';
-//	} else {
-//		cat.childNodes[1].style.transform = 'scale(-1, 1)'; widthCat = 70 * CATS[pn].size;
-//		document.getElementById(`cat${pn}`).childNodes[0].style.textAlign = '';
-//	}
 
-/*
-	if (s.newchunk[2]) {
-            cat.childNodes[1].style.transform = 'scale(-1, 1)';
-            widthCat = 70 * CATS[pn].size; //CATS[pn].lastPlace[2] = 0;
-		document.getElementById(`cat${pn}`).childNodes[0].style.textAlign = '';
-	} else if (s.newchunk[2]) {
-		cat.childNodes[1].style.transform = 'scale(1)';
-		//CATS[pn].lastPlace[2] = 1;
-		document.getElementById(`cat${pn}`).childNodes[0].style.textAlign = 'right';
-	}
-*/
 	for(let i = 0; i < s.dis; i+=CATS[pn].speed) {
 		CATS[pn].steping = setTimeout(() => {
+			if (!CATS[pn]) return;
 			cat.style.zIndex = 100 -  Math.round(CATS[pn].lastPlace[1] += step);
 		}, i);
 	}

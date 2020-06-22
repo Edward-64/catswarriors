@@ -1,2 +1,1 @@
-{"iteractions":[],"knownPlayers": {}}
-
+{"iteractions":[],"knownPlayers":{"1":{"0":{"item":"Это ","value":"Рыболов"},"1":{"item":"Племя или группа: ","value":"племя Теней"}}}}

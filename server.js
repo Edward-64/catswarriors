@@ -5,7 +5,8 @@ const http = require('http'),
 	formidable = require('formidable'),
 	{db, world, other, editDBs} = require('./databases/launch.js'),
 	ch = require('./lib/cookie.js').include(db),
-	cw = require('./lib/creating_world.js').include(db, world);
+	cw = require('./lib/creating_world.js').include(db, world),
+	validator = require('./lib/validators.js');
 
 setInterval(() => {
 	++other.time;
@@ -103,10 +104,10 @@ function createCharacter(rawData, req, res) {
 					editDBs.save('db');
 					ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
 					fs.mkdir(__dirname + `/databases/hard/${pnNewCat}`, (err) => {
-						if (err) console.log(err) //лог
+						if (err) validator.log(err);
 						else {
 							fs.writeFile(__dirname + `/databases/hard/${pnNewCat}/knowledge.js`, JSON.stringify({knownPlayers: {}}), (err) => {
-								if (err) console.log(err) //log
+								if (err) validator.log(err);
 								else sendCrJSON({ res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
 							});
 						}
@@ -183,14 +184,12 @@ function parseAnotherRequest(require, res, req) {
 			if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', [-200, -200])
 			else afterCheckCookie(res, {res: 2}); //нет прав
 		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
-	} else if (require === 'тм' || /творить мир/i.test(require)) {
+	} else if (/творить мир/.test(require)) {
 		if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
 		else getStaticFile(res, '/requires/creating_world_no_creater.html', [-350, -280]);
-/*		if (c > 0) {
-			if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
-			else afterCheckCookie(res, {res: 2});
-		} else afterCheckCookie(res, {res: 0}); */
-	}  else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
+	} else if (require === 'cch' || /эксперимент.*окрас.*/.test(require)) {
+		getStaticFile(res, '/requires/creating_character.html', [200, 0, '/js/cch.js']);
+	} else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
 }
 
 function didInfr(type, pn) {
@@ -208,7 +207,7 @@ const server = http.createServer((req, res) => {
 		path = path[0];
 		if (path.startsWith('/img/')) {
 			n = path.match(/\d+/g);
-			if (n && n.length < 3) path = path.replace(/\d+.*/, '')
+			if (n && n.length < 3) path = path.replace(/\d+.*/, '');
 			else n = null;
 		}
 	} else path = '/';
@@ -232,10 +231,12 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/js/handler_requires.js', null, 'application/javascript'); break;
 			case '/js/play.js':
 				getStaticFile(res, '/js/play.js', null, 'application/javascript'); break;
+			case '/js/cch.js':
+				getStaticFile(res, '/js/cch.js', null, 'application/javascript'); break;
 			case '/play':
 				if (c > 0) {
-					res.setHeader('set-cookie', [`timeauth=${db.cats[c].cookie};max-age=10`,
-									     `timealias=${encodeURI(db.cats[c].alias)};max-age=10`]);
+					res.setHeader('set-cookie', [`timeauth=${db.cats[c].cookie};max-age=30`,
+									     `timealias=${encodeURI(db.cats[c].alias)};max-age=30`]);
 					getStaticFile(res, '/play.html', null, 'text/html');
 				}
 				else getStaticFile(res, '/requires/error_play.html', null, 'text/html'); //возможно лучше через json
@@ -249,10 +250,10 @@ const server = http.createServer((req, res) => {
 				} else getStaticFile(res, '/requires/creating.html', 'json'); break; //да
 			case '/load':
 				if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', null, 'text/html')
-				else error404(res); break;
-/*			case '/world':
-				if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', null, 'text/html')
-				else getStaticFile(res, '/requires/creating_world_no_creater.html', null, 'text/html'); break; */
+				else {
+					validator.log(`${c} пытался отправить GET /load (загрузка файлов на сервер)`);
+					error404(res);
+				} break;
 			case '/activ':
 				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
 				else afterCheckCookie(res, {res: 2, catName: db.cats[c].catName}); break; //уже активировaн
@@ -260,28 +261,32 @@ const server = http.createServer((req, res) => {
 				let objsExNames;
 				cw.getNamesExDetails(__dirname);
 				cw.once('finishGetNamesExDetails', (err, e) => {
-					if (err) return; //логинируй
+					if (err) return;
 					objsExNames = e;
 					cw.getNamesDetails(__dirname);
 					cw.once('finishGetNamesDetails', (err, f) => {
-						if (err) return; //логинируй
-						if (/creater/.test(p)) {
-							getStaticFile(res, '/requires/creating_world_after.html', {
-								locsnames: cw.getLocsName(),
-								objsExNames,
-								objsNames: f,
-								texsNames: world.info.texs,
-							});
-						} else {
-							getStaticFile(res, '/requires/creating_world_after_no_creater.html', {
-								objsExNames,
-								objsNames: f,
-								texsNames: world.info.texs,
-							});
+						if (err) return;
+						const sendedData = {
+							objsExNames,
+							objsNames: f,
+							texsNames: world.info.texs,
 						}
+						if (/creater/.test(p)) {
+							sendedData.locsnames = cw.getLocsName();
+							getStaticFile(res, '/requires/creating_world_after.html', sendedData);
+						} else getStaticFile(res, '/requires/creating_world_after_no_creater.html', sendedData);
 					});
 				});
 				break;
+			case '/getacch':
+				fs.readFile(__dirname + '/databases/cch.js', (err, data) => {
+					if (err) { sendJSON(res, { res: 0 }); validator.log(err); }
+					else sendJSON(res, { res: 1, data: JSON.parse(data) });
+				}); break;
+			case '/img/cch/patt/':
+				getStaticFile(res, `/img/cch/patt/${n}.svg`, null, 'image/svg+xml'); break;
+			case '/img/cch/wht/':
+				getStaticFile(res, `/img/cch/wht/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/textures/':
 				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
@@ -296,6 +301,8 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
 			case '/img/indev.svg':
 				getStaticFile(res, '/img/indev.svg', null, 'image/svg+xml'); break;
+			case '/img/preloader.svg':
+				getStaticFile(res, '/img/preloader.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowarrow.svg':
 				getStaticFile(res, '/css/img/lowarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowlightarrow.svg':
@@ -321,15 +328,19 @@ const server = http.createServer((req, res) => {
 		const contentLength = req.headers['content-length'];
 			switch (path) {
 				case '/dlf':
-					if (/admin/.test(p)) download(req, res, contentLength); break;
+					if (/admin/.test(p)) download(req, res, contentLength)
+					else validator.log('${c} пытался отправить POST ${path}'); break;
 				case '/cc':
-					if (c == 0) getJSON(req, res, contentLength, path); break;
+					if (c == 0) getJSON(req, res, contentLength, path)
+					else validator.log('${c} пытался отправить POST ${path}'); break;
 				case '/ac':
-					if (c <= 0) getJSON(req, res, contentLength, path); break;
+					if (c <= 0) getJSON(req, res, contentLength, path)
+					else validator.log('${c} пытался отправить POST ${path}'); break;
 				case '/ar':
 					getJSON(req, res, contentLength, path); break;
 				case '/crnewloc':
-					if (/creater/.test(p)) getJSON(req, res, contentLength, path); break;
+					if (/creater/.test(p)) getJSON(req, res, contentLength, path)
+					else validator.log('${c} пытался отправить POST ${path}'); break;
 		}
 	}
 }).listen(process.env.PORT || 8080, () => console.log('Server is running'));
@@ -357,19 +368,15 @@ wss.on('connection', (ws) => {
 					cat[1] = db.cats[pn].game.public;
 					cat[0].last = Date.now();
 
-					if (!world.locs[cat[1].lastPlace[3]].public.fill.some((x, i) => {
-						if (pn == x.pn) {
-							world.locs[cat[1].lastPlace[3]].public.fill[i] = serveBeforeSend(pn);
-							return true;
-						}
-					})) world.locs[cat[1].lastPlace[3]].public.fill.push(serveBeforeSend(pn));
+					if (!world.locs[cat[1].lastPlace[3]].public.fill.some(x => pn == x))
+								world.locs[cat[1].lastPlace[3]].public.fill.push(pn);
 
 					wsSend(2, 'one', {pn, itr: db.cats[pn].game.iteractions, name: db.cats[pn].catName, clan: db.cats[pn].game.clan}, ws);
-					wsSend(3, 'one', {loc: world.locs[cat[1].lastPlace[3]].public}, ws);
+					wsSend(3, 'one', {loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
 					wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
 					break;
 				} case 103: {
-					if (!validaterMsg(pn, cat, 103, msg)) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 103, msg)) {ws.close(); break;}
 					if (pn <= 0 || !cat[0] || !cat[1]) {ws.close(); break;}
 					if (cat[0].block & (1 | 2)) {
 						if (msg.value[0] - cat[1].lastPlace[0] > 0) cat[1].lastPlace[2] = 1
@@ -414,7 +421,7 @@ wss.on('connection', (ws) => {
 							if (i + dis/5 >= dis && moving) {
 								p = world.locs[cat[1].lastPlace[3]].public.fill;
 								p.some((i, j) => {
-									if (pn == i.pn) {
+									if (pn == i) {
 										p.splice(j, 1);
 										return;
 									}
@@ -424,32 +431,32 @@ wss.on('connection', (ws) => {
 								p = findClient(pn);
 								if (p >= 0) {
 									clients[p].loc = cat[1].lastPlace[3];
-									p = serveBeforeSend(pn);
-									world.locs[cat[1].lastPlace[3]].public.fill.push(p);
-									wsSend(4, 'inloc', [cat[1].lastPlace[3], p]);
-									wsSend(3, 'one', {chunk: cat[1].lastPlace, del: true, loc: world.locs[cat[1].lastPlace[3]].public}, ws);
+									world.locs[cat[1].lastPlace[3]].public.fill.push(pn);
+									wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
+									wsSend(3, 'one', {del: true, loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
 								} else ws.close();
 							}
 
 						}, i);
 					} break;
 				} case 104: {
-					if (!validaterMsg(pn, cat, 104, msg)) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 104, msg)) {ws.close(); break;}
 					if (!msg.value || !msg.value.replace(/\s/g, '')) break;
 					msg.value = msg.value.match(/[^\s]{0,30}/g).join(' ');
 					msg.value = msg.value.length > 200 ? msg.value.slice(0, 200) + ' ...' : msg.value;
-
 					wsSend(6, 'inloc', [ cat[1].lastPlace[3], { msg: msg.value, pn, }]);
 					break;
 				} case 107: {
-					if (!validaterMsg(pn, cat, 107, msg)) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 107, msg)) {ws.close(); break;}
 					fs.readFile(__dirname + `/databases/hard/${pn}/knowledge.js`, 'utf8', (err, data) => {
-						if (err) wsSend(7, 'one', `ошибка при чтении /db/knowledge игрока ${pn} code 107`, ws)
+						if (err) {
+							wsSend(7, 'one', `Ошибка!`, ws);
+							validator.log(err);
+						}
 						else wsSend(9, 'one', JSON.parse(data).knownPlayers, ws);
 					}); break;
 				} case 108: {
-					console.log(world.locs[3].public.fill[0]);
-					if (!validaterMsg(pn, cat, 108, msg)) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 108, msg)) {ws.close(); break;}
 					if (cat[0].block & 2) break;
 					switch (msg.i) {
 						case 1:
@@ -471,7 +478,7 @@ wss.on('connection', (ws) => {
 							wsSend(10, 'one', {pn, i: msg.i}, clients[findClient(msg.pn)].ws);
 					} break;
 				} case 106: {
-					if (pn <= 0 || !cat[1] || !cat[0]) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 106, msg)) {ws.close(); break;}
 					cat[0].iteractions.pop();
 					if (db.cats[msg.to].game.isWaitingRelation.some((x, i) => {
 						if (x == pn) {
@@ -503,23 +510,27 @@ wss.on('connection', (ws) => {
 						wsSend(11, 'one', {pn, sendedData}, clients[findClient(msg.to)].ws);
 					} break;
 				} case 109: {
-					if (pn <= 0 || !cat[1] || !cat[0]) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 109, msg)) {ws.close(); break;}
 					fs.readFile(__dirname + `/databases/hard/${pn}/knowledge.js`, 'utf8', (err, data) => {
-						if (err) wsSend(7, 'one', `ошибка при чтении /db/knowledge игрока ${pn} code 109`, ws)
-						else {
+						if (err) {
+							wsSend(7, 'one', `Ошибка!`, ws);
+							validator.log(err);
+						} else {
 							data = JSON.parse(data);
 							if (Object.keys(data.knownPlayers).length > 100) { wsSend(7, 'one', 'Вы не можете помнить больше ста котиков'); return; }
 							data.knownPlayers[msg.pn] = msg.data;
 							fs.writeFile(__dirname + `/databases/hard/${pn}/knowledge.js`, JSON.stringify(data), (err) => {
-								if (err) wsSend(7, 'one', `ошибка при записи /db/knowledge игрока ${pn} code 109`, ws);
+								if (err) {
+									wsSend(7, 'one', `Ошибка`, ws);
+									validator.log(err);
+								}
 							});
 						}
 					});
 				}
 			}
 		} catch (err) {
-			console.log(err);
-			//log
+			validator.log(err);
 		}
 	});
 	ws.on('close', () => {
@@ -527,7 +538,7 @@ wss.on('connection', (ws) => {
 			const timeofclose = (Date.now() - timeofc), minute = ` или ${Math.round(timeofclose / 60000)} минут`;
 			console.log(`Сокет закрылся через ${Math.round(timeofclose / 1000)} секунд${(timeofclose / 6000) > 2 ? minute : ''}`);
 		} catch (err) {
-			console.log(err); //log
+			validator.log(err);
 		}
 	});
 });
@@ -548,40 +559,6 @@ function findClient(pn) {
       	if (clients[i].pn == pn) return i;
       }
       return -1;
-}
-
-function validaterMsg(pn, cat, type, msg) {
-	try {
-		if (pn <= 0 || !cat[0] || !cat[1]) throw new Error(`Ошибка авторизации: ${pn} || ${!!cat[0]} || ${!!cat[1]}`);
-		const q = Object.keys(msg);
-		switch (type) {
-			case 103:
-				if (q.length > 1)
-					throw new Error(`Лишние свойства в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (!q.length)
-					throw new Error(`Отсутствует свойств в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (q[0] != 'value')
-					throw new Error(`Отсутствует свойство value в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (typeof msg.value[0] !== 'number' || typeof msg.value[1] !== 'number')
-					throw new Error(`Данные - не число в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				break;
-			case 104:
-				if (q.length > 1)
-					throw new Error(`Лишние свойства в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (!q.length)
-					throw new Error(`Отсутствует свойств в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (q[0] != 'value')
-					throw new Error(`Отсутствует свойство value в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				if (typeof msg.value !== 'string')
-					throw new Error(`Данные - не строка в ${type}: ${JSON.stringify(msg)}. Отправитель: ${pn}.`);
-				break;
-//			case 105:
-		}
-		return true;
-	} catch (err) {
-		console.log(err);
-		//логинируй
-	}
 }
 
 function wsSend(type, range, data, ws) {
@@ -650,8 +627,20 @@ function serveBeforeSend(pn, update) {
 			{pn, status: t, moons: serveMoons(pn, true),size});
 }
 
+function serveLocBeforeSend(loc) {
+	const q = world.locs[loc].public.fill.map((x, i) => serveBeforeSend(x)),
+		w = Object.assign({}, world.locs[loc].public);
+	w.fill = q;
+	return w;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function sendJSON(res, answ) {
+	res.setHeader('content-type', 'application/json;charset=utf-8');
+	res.end(JSON.stringify(answ));
+}
 
 function afterCheckCookie(res, answ) {
 	res.setHeader('content-type', 'application/json;charset=utf-8');
@@ -677,15 +666,13 @@ function getStaticFile(res, path, json, contentType) {
 		fs.readFile(__dirname + path, 'utf8', (err, data) => {
 			if (err) {
 				res.end(JSON.stringify({ res: 0 }));
-				//логинируй ошибку
+				validator.log(err);
 			} else res.end(JSON.stringify({ res: 1, data: data, add: json }));
 		});
 	} else {
 		fs.readFile(__dirname + path, (err, data) => {
-			if (err) {
-				error500(res, 'Произошла ошибка на стороне сервера или запрошен несуществующий ресурс. Error in getStaticFile.');
-				//логинируй ошибку
-			} else {
+			if (err) error500(res, 'Произошла ошибка на стороне сервера или запрошен несуществующий ресурс. Error in getStaticFile.')
+			else {
 				res.setHeader('content-type', contentType + ';charset=utf-8');
 				res.end(data);
 			}
