@@ -3,119 +3,192 @@
 const http = require('http'),
 	fs = require('fs'),
 	formidable = require('formidable'),
-	{db, world, other, editDBs} = require('./databases/launch.js'),
-	ch = require('./lib/cookie.js').include(db),
-	cw = require('./lib/creating_world.js').include(db, world),
-	validator = require('./lib/validators.js');
-
+	{db, locs, other, editDBs} = require('./databases/launch.js'),
+	validator = require('./lib/validators.js'),
+	ch = require('./lib/cookie.js').include(db, validator),
+	cw = require('./lib/creating_world.js').include(db, locs, validator, editDBs),
+	queens = {
+		['племя Теней']: [[2, 1]],
+		['племя Ветра']: [[5, 1]],
+		['Речное племя']: [[4, 1]],
+		['Грозовое племя']: [[3, 1]],
+		['одиночка']: [[6, 1]],
+		['домашний котик']: [[6, 1]],
+	};
+/*
+editDBs.changeEveryCat(cat => {
+	try {
+		delete cat.lastUpdate;
+		return [null, cat];
+	} catch (err) {
+		return [err];
+	}
+});
+*/
 setInterval(() => {
 	++other.time;
 }, 1000);
 
+
 setInterval(() => {
 	editDBs.save('other');
-	editDBs.save('cats');
-}, 60000);
+}, 1800000);
 
 function createCharacter(rawData, req, res) {
-	function sendCrJSON(answ) {
-		res.setHeader('content-type', 'application/json;charset=utf-8');
-		res.end(JSON.stringify(answ));
-	}
-	if (!rawData) { sendCrJSON({ cr: 0, res: 'некорректные данные'} ); return; }
-	let lastCat = db.info.totalCats,
-	regCatName = rawData.catName.match(/[а-яА-Яё]+/g),
-	regAlias = rawData.alias.match(/[a-zA-Zа-яА-Яё\d]+/g),
-	regPass = rawData.password.match(/[\wа-яА-Яё\-\d]+/);
+	try {
+		if (!rawData) { sendJSON(res, { cr: 0, res: 'некорректные данные'} ); return; }
+		let	regCatName = rawData.catName.match(/[а-яА-Яё]+/g),
+			regAlias = rawData.alias.match(/[a-zA-Zа-яА-Яё\d]+/g),
+			regPass = rawData.password.match(/[\wа-яА-Яё\-\d]+/);
 
-      if (regCatName && regCatName.length == 2) regCatName = regCatName.join(' ');
-      if (regCatName && regCatName.length == 1) regCatName = regCatName[0];
-      if (regPass) regPass = regPass[0];
-      if (regAlias) regAlias = regAlias.join(' ');
+	      if (regCatName && regCatName.length == 2) regCatName = regCatName.join(' ');
+	      if (regCatName && regCatName.length == 1) regCatName = regCatName[0];
+	      if (regPass) regPass = regPass[0];
+	      if (regAlias) regAlias = regAlias.join(' ');
 
-	const a = rawData.catName.length < 2 || rawData.catName.length > 32,
-	b = rawData.alias.length < 2 || rawData.alias.length > 32 || rawData.password.length < 6 || rawData.password.length > 32,
-	c = regCatName !== rawData.catName || regAlias !== rawData.alias || regPass !== rawData.password;
+		let a = rawData.catName.length < 2 || rawData.catName.length > 32,
+		    b = rawData.alias.length < 2 || rawData.alias.length > 32 || rawData.password.length < 6 || rawData.password.length > 32,
+		    c = regCatName !== rawData.catName || regAlias !== rawData.alias || regPass !== rawData.password;
 
-	if (!(regCatName && regAlias && regPass) || a || b || c) sendCrJSON({ cr: 0, res: 'некорректные данные'} )
-	else {
-		let i = 1;
-		for(; i <= lastCat; i++) {
-			if (db.cats[i].catName.toLowerCase() === rawData.catName.toLowerCase()) break;
-       	}
-		if (i <= lastCat) sendCrJSON({ cr: 0, res: 'персонаж с таким именем уже существует'} )
-		else {
-			i = 1;
-			for(; i <= lastCat; i++) {
-				if (db.cats[i].password === rawData.password) break;
-			}
-			if (i <= lastCat) sendCrJSON({ res: 'придумайте другой пароль', cr: 0 })
-			else { //Создай проверку на то, что девайсы && ip совпадают
-				const c = ch.existingCookie(req.headers.cookie, rawData);
-				if (c < 0) {
-					didInfr('creatingTwoChar', -c);
-	      			sendCrJSON({ cr: 0, res: `<span class="lower-text">У Вас уже есть персонаж по имени ${db[-c].catName}. ` +
-					`Создание сразу двух и более персонажей запрещено, поэтому, если продолжите попытки создания нового персонажа, ` +
-					`${db[-c].catName} будет заблокирован и нового создать Вы не сможете. Чтобы создать нового персонажа, нужно удалить старого.</span>` });
-				}
-				else {
-					const cNewCat = ch.generateCookie(),
-						pnNewCat = ++db.info.totalCats;
-					let	clan = Math.floor(Math.random() * 7);
-					let	die = 120 + Math.floor(Math.random() * 31);
-					if (Math.floor(Math.random() * 10) == 7) die = 150 + Math.floor(Math.random() * 51);
-					die = other.time + die * 150 * 24 * 60;
-					switch (clan) {
-						case 0: clan = 'Грозовое племя'; break;
-						case 1: clan = 'Речное племя'; break;
-						case 2: clan = 'племя Теней'; break;
-						case 3: clan = 'племя Ветра'; break;
-						case 4: clan = 'одиночка'; break;
-						case 5: clan = 'домашняя киска'; break;
-						case 6: clan = 'Клан Падающей Воды'; break;
-					}
-					db.cats[pnNewCat] = {
-						catName: rawData.catName[0].toUpperCase() + rawData.catName.substring(1).toLowerCase(),
-						role: 'user', //кандидат на бинарное представление прав
-						alias: rawData.alias,
-						password: rawData.password,
-						devices: [],
-						cookie: cNewCat,
-						dateOfReg: Date.now(),
-						lastVisitOfSite: Date.now(),
-						infractions: {},
-						game: {
-							public: {
-								gender: Number.parseInt(rawData.gender),
-								health: 100,
-								action: 0,
-								speed: 50,
-								lastPlace: [20, 0, 0, 4],
-								birth: other.time,
-							},
-							die,
-							lastActiv: Date.now() - 15 * 60001,
-							block: 0,
-							isWaitingRelation: [],
-							cantSendRelation: [],
-							clan,
-						}
-					};
-					editDBs.save('db');
-					ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
-					fs.mkdir(__dirname + `/databases/hard/${pnNewCat}`, (err) => {
-						if (err) validator.log(err);
-						else {
-							fs.writeFile(__dirname + `/databases/hard/${pnNewCat}/knowledge.js`, JSON.stringify({knownPlayers: {}}), (err) => {
-								if (err) validator.log(err);
-								else sendCrJSON({ res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
-							});
-						}
-					});
-				}
+		if (!(regCatName && regAlias && regPass) || a || b || c) {
+			sendCrJSON({ cr: 0, res: 'некорректные данные'} );
+			return;
+		}
+
+		for(let i = 1; i <= db.totalCats; i++) {
+			if (db.cats[i].passwords === rawData.password) {
+				sendCrJSON({ res: 'придумайте другой пароль', cr: 0 });
+				return;
 			}
 		}
+
+		//Создай проверку на то, что девайсы && ip совпадают
+		c = ch.existingCookie(req.headers.cookie, rawData);
+		if (c < 0) {
+			didInfr('creatingTwoChar', -c);
+		      sendCrJSON({ cr: 0, res: `<span class="lower-text">У Вас уже есть персонаж по имени ${db[-c].catName}. ` +
+				`Создание сразу двух и более персонажей запрещено. Чтобы создать нового персонажа, нужно удалить старого.</span>` });
+			return;
+		}
+
+		const cNewCat = ch.generateCookie(),
+			pnNewCat = ++db.totalCats;
+		let	clan = Math.floor(Math.random() * 6),
+			die = 120 + Math.floor(Math.random() * 31);
+		if (Math.floor(Math.random() * 10) == 7) die = 150 + Math.floor(Math.random() * 51);
+		die = other.time + die * 60 * 60 * 60;
+		switch (clan) {
+			case 0: clan = 'Грозовое племя'; break;
+			case 1: clan = 'Речное племя'; break;
+			case 2: clan = 'племя Теней'; break;
+			case 3: clan = 'племя Ветра'; break;
+			case 4: clan = 'одиночка'; break;
+			case 5: clan = 'домашний котик'; break;
+		}
+
+		fs.mkdir(__dirname + `/databases/etc/${pnNewCat}`, (err) => {
+			if (err) { validator.log(err); sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'}); return; }
+			fs.writeFile(__dirname + `/databases/etc/${pnNewCat}/knowledge.js`, JSON.stringify({knownPlayers: {}}), (err) => {
+				if (err) { validator.log(err); sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'}); return; }
+
+				db.cats[pnNewCat] = {
+					password: rawData.password,
+					alias: rawData.alias,
+					cookie: cNewCat
+				}
+
+				const newCat = {
+					catName: rawData.catName[0].toUpperCase() + rawData.catName.substring(1).toLowerCase(),
+					role: 'user', //кандидат на бинарное представление прав
+					alias: rawData.alias,
+					password: rawData.password,
+					devices: [],
+					cookie: cNewCat,
+					dateOfReg: Date.now(),
+					lastVisitOfSite: Date.now(),
+					infractions: {},
+					game: {
+						public: {
+							gender: Number.parseInt(rawData.gender),
+							health: 100,
+							action: 0,
+							speed: 50,
+							lastPlace: [20, 0, 0, 1],
+							birth: other.time,
+						},
+						die,
+						lastActiv: Date.now() - 15 * 60001,
+						block: 0,
+						isWaitingRelation: [],
+						cantSendRelation: [],
+						iteractions: [],
+						clan,
+					},
+					tmp: { dontChooseCharacter: true, haventGotParents: true }
+				}
+
+				ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
+				db.cache[pnNewCat] = newCat;
+				editDBs.save('db'); //удалить потом
+				editDBs.setCat(pnNewCat, newCat, err => {
+					if (err) { sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'}); return; }
+					sendJSON(res, { res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
+				});
+			});
+		});
+	} catch(err) {
+		validator.log('при создании персонажа: ' + err + '\n\n отправленные данные: ' + JSON.stringify(rawData));
 	}
+}
+
+function createOC(fromUser, res, pn) {
+	const cch = require('./lib/cch.js');
+	let	inh, cchh;
+
+	editDBs.getDB('cch.js', (err, data) => {
+		if (err) sendJSON(res, { res: 0 });
+		else {
+			cchh = data;
+			editDBs.getDB('inherited.js', (err, data) => {
+				if (err) sendJSON(res, { res: 0 });
+				else {
+					inh = data;
+					if (validator.cch(fromUser, Object.assign({}, inh), cchh, pn)) {
+						cch.createCharacter(pn, fromUser)
+						cch.once('finishCreateCharacter', (err, path) => {
+							if (err) sendJSON(res, { res: 0 });
+							else {
+								const forCache = err => {
+									if (err) {sendJSON(res, { res: 0 }); return;}
+									db.cache[pn].game.public.skin = path;
+									delete db.cache[pn].tmp.dontChooseCharacter;
+									editDBs.setCat(pn, db.cache[pn]);
+									sendJSON(res, { res: 1 });
+								}
+								if (db.cache[pn]) forCache()
+								else editDBs.getCat(pn, forCache);
+							}
+						});
+						for (let p in inh.colors) {
+							if (!inh.colors.hasOwnProperty(p)) continue;
+							if (p == fromUser[0]) inh.colors[p] += 0.25
+							else inh.colors[p] -= 0.25;
+							if (inh.colors[p] <= 0) delete inh.colors[p];
+							if (inh.colors[p] > 1) inh.colors[p] = 1;
+						}
+						for (let p in inh.patterns) {
+							if (!inh.patterns.hasOwnProperty(p)) continue;
+							if (p == fromUser[2]) inh.patterns[p] += 0.25
+							else inh.patterns[p] -= 0.25;
+							if (inh.patterns[p] <= 0) delete inh.patterns[p];
+							if (inh.patterns[p] > 1) inh.patterns[p] = 1;
+						}
+						editDBs.setDB('inherited.js', inh, null, pn);
+					} else sendJSON(res, { res: 0 });
+				}
+			}, pn);
+		}
+	});
 }
 
 function download(req, res, contentLength, path) {
@@ -150,7 +223,7 @@ function download(req, res, contentLength, path) {
 	});
 }
 
-function getJSON(req, res, contentLength, cmd) {
+function getJSON(req, res, contentLength, cmd, pn) {
 	let body = '';
 	if (contentLength > 1048576) {
 		res.statusCode = 400;
@@ -166,39 +239,49 @@ function getJSON(req, res, contentLength, cmd) {
 		}
 	});
 	req.on('end', () => {
-		body = JSON.parse(body);
-		switch (cmd) {
-			case '/ac': ch.setCookie(body, res); break;
-			case '/cc': createCharacter(body, req, res); break;
-			case '/ar': parseAnotherRequest(body.require, res, req); break;
-			case '/crnewloc': cw.addLocation(res, body, __dirname, editDBs); break;
+		try {
+			body = JSON.parse(body);
+			switch (cmd) {
+				case '/ac': ch.setCookie(body, res); break;
+				case '/cc': createCharacter(body, req, res); break;
+				case '/ar': parseAnotherRequest(body.require, res, req, pn); break;
+				case '/crnewloc': cw.addLocation(res, body, __dirname); break;
+				case '/scch': createOC(body, res, pn); break;
+				case '/addpath': cw.addPath(res, body); break;
+			}
+		} catch(err) {
+			validator.log(err);
 		}
 	});
 }
 
-function parseAnotherRequest(require, res, req) {
-	const c = ch.existingCookie(req.headers.cookie),
-		p = db.cats[c] ? db.cats[c].role : null;
+function parseAnotherRequest(require, res, req, pn) {
+	const p = db.cache[pn] ? db.cache[pn].role : null;
 	if (require === 'зфнс') {
-		if (c > 0) {
+		if (pn > 0) {
 			if (/admin/.test(p)) getStaticFile(res, '/requires/load.html', [-200, -200])
 			else afterCheckCookie(res, {res: 2}); //нет прав
 		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
-	} else if (/творить мир/.test(require)) {
-		if (/creater/.test(p)) getStaticFile(res, '/requires/creating_world.html', [-350, -280])
-		else getStaticFile(res, '/requires/creating_world_no_creater.html', [-350, -280]);
-	} else if (require === 'cch' || /эксперимент.*окрас.*/.test(require)) {
+	} else if (require === 'q' || /творить мир/.test(require)) {
+		if (/creater/.test(p)) getStaticFile(res, '/requires/cw.html', [-350, -280, '/js/cw.js'])
+		else getStaticFile(res, '/requires/cw_no_creater.html', [200, 0, 'js/cw_no_creater.js']);
+	} else if (/эксп[еи]{1}р[еи]{1}мент.*(окрас|персонаж).*/.test(require)) {
 		getStaticFile(res, '/requires/creating_character.html', [200, 0, '/js/cch.js']);
 	} else afterCheckCookie(res, {res: 3}) //попробуйте что-нибудь другое
 }
 
 function didInfr(type, pn) {
-	if (db.cats[pn].infractions[type]) db.cats[pn].infractions[type] += 1
-	else db.cats[pn].infractions[type] = 1;
-	editDBs.save('db');
+	function forCache(err) {
+		if (err) return;
+		if (db.cache[pn].infractions[type]) db.cache[pn].infractions[type] += 1
+		else db.cache[pn].infractions[type] = 1;
+	}
+	if (db.cache[pn]) forCache()
+	else editDBs.getCat(pn, forCache);
 }
 
 const server = http.createServer((req, res) => {
+try {
 	let path = req.url.match(/\/{1}[\w\d\.\/_]*/i), n = null;
 
 	//req.connection.remoteAddress || req.headers['x-forwarded-for'];
@@ -212,12 +295,19 @@ const server = http.createServer((req, res) => {
 		}
 	} else path = '/';
 
-	const c = ch.existingCookie(req.headers.cookie || ''),
-		p = c > 0 ? db.cats[c].role : null;
-	if (c > 0) db.cats[c].lastVisitOfSite = Date.now();
+	const c = ch.existingCookie(req.headers.cookie || '');
+	let	p = null;
+	if (c == 0 || db.cache[c]) forStartServer(null)
+	else editDBs.getCat(Math.abs(c), forStartServer);
+
+function forStartServer(err) {
+	if (err) return error500(res, 'Ошибка аутентификации');
+	if (c > 0) {
+		p = db.cache[c].role;
+		db.cache[c].lastVisitOfSite = Date.now();
+	}
 
 	if (req.method === 'GET') {
-//		console.log(req.url);
 		switch(path) {
 			case '/':
 				getStaticFile(res, '/index.html', null, 'text/html'); break;
@@ -233,19 +323,85 @@ const server = http.createServer((req, res) => {
 				getStaticFile(res, '/js/play.js', null, 'application/javascript'); break;
 			case '/js/cch.js':
 				getStaticFile(res, '/js/cch.js', null, 'application/javascript'); break;
+			case '/js/cch_inh.js':
+				getStaticFile(res, '/js/cch_inh.js', null, 'application/javascript'); break;
+			case '/js/cw.js':
+				getStaticFile(res, '/js/cw.js', null, 'application/javascript'); break;
+			case '/js/cw_no_creater.js':
+				getStaticFile(res, '/js/cw_no_creater.js', null, 'application/javascript'); break;
 			case '/play':
 				if (c > 0) {
-					res.setHeader('set-cookie', [`timeauth=${db.cats[c].cookie};max-age=30`,
-									     `timealias=${encodeURI(db.cats[c].alias)};max-age=30`]);
-					getStaticFile(res, '/play.html', null, 'text/html');
+					if (db.cache[c].tmp.dontChooseCharacter) {
+						if (db.cache[c].tmp.haventGotParents) {
+							const clan = db.cache[c].game.clan,
+								parents = queens[clan][Math.floor(Math.random() * queens[clan].length)] || queens[clan][0];
+							let	mInh, fInh, inh = {patterns:{},colors:{}};
+							db.cache[c].game.parents = parents;
+							editDBs.getDB('knowledge.js', (err, data) => {
+								if (err) return;
+								data.knownPlayers[parents[0]] = {
+									['2']: { item: 'Эта кошка для меня ', value: 'мама' }
+								}
+								data.knownPlayers[parents[1]] = {
+									['2']: { item: 'Этот кот для меня ', value: 'отец' }
+								}
+								editDBs.setDB('knowledge.js', data, null, c);
+							}, c);
+							editDBs.getDB('knowledge.js', (err, data) => {
+								if (err) return;
+								data.knownPlayers[c] = {
+										['0']: { item: 'Это ', value: db.cache[c].catName },
+										['2']: { item: (db.cache[c].game.public.gender ? 'Он' : 'Она') + ' мой ', value: 'котенок' }
+									}
+								editDBs.setDB('knowledge.js', data, null, parents[0]);
+							}, parents[0]);
+							editDBs.getDB('knowledge.js', (err, data) => {
+								if (err) return;
+								data.knownPlayers[c] = {
+										['0']: { item: 'Это ', value: db.cache[c].catName },
+										['2']: { item: (db.cache[c].game.public.gender ? 'Он' : 'Она') +  ' мой ', value: 'котенок' }
+									}
+								editDBs.setDB('knowledge.js', data, null, parents[1]);
+							}, parents[1]);
+							editDBs.getDB('inherited.js', (err, data) => {
+								if (err) return; mInh = data;
+								editDBs.getDB('inherited.js', (err, data) => {
+									if (err) return; fInh = data;
+									editDBs.getDB('cch.js', (err, cch) => {
+										if (err) return;
+										inh.white = mInh.white || fInh.white;
+										for (let i = 0; i <= cch.lastColor; i++) {
+											if (!(mInh.colors[i] || fInh.colors[i])) continue;
+											inh.colors[i] = ((mInh.colors[i] || 0) + (fInh.colors[i] || 0)) / 2;
+										}
+										for (let i = 0; i <= cch.lastPattern; i++) {
+											if (!(mInh.patterns[i] || fInh.patterns[i])) continue;
+											inh.patterns[i] = ((mInh.patterns[i] || 0) + (fInh.patterns[i] || 0)) / 2;
+										}
+										editDBs.setDB('inherited.js', inh, err => {
+											if (!err) {
+												delete db.cache[c].tmp.haventGotParents;
+												editDBs.setCat(c, db.cache[c]);
+											}
+										}, c);
+									});
+								}, parents[1]);
+							}, parents[0]);
+						}
+						getStaticFile(res, '/requires/cch_inh.html', null, 'text/html');
+					} else {
+						res.setHeader('set-cookie', [`timeauth=${db.cache[c].cookie};max-age=20`,
+										     `timealias=${encodeURI(db.cache[c].alias)};max-age=20`]);
+						getStaticFile(res, '/play.html', null, 'text/html');
+					}
 				}
-				else getStaticFile(res, '/requires/error_play.html', null, 'text/html'); //возможно лучше через json
+				else getStaticFile(res, '/requires/error_play.html', null, 'text/html');
 				break;
 			case '/creating':
 				if (c > 0) {
 					afterCheckCookie(res, {res: 0}); //нет
 				} else if (c < 0) {
-					afterCheckCookie(res, {res: 2, catName: db.cats[-c].catName}); //нет, предупреждение
+					afterCheckCookie(res, {res: 2, catName: db.cache[-c].catName}); //нет, предупреждение
 					didInfr('creatingTwoChar', -c);
 				} else getStaticFile(res, '/requires/creating.html', 'json'); break; //да
 			case '/load':
@@ -256,33 +412,42 @@ const server = http.createServer((req, res) => {
 				} break;
 			case '/activ':
 				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
-				else afterCheckCookie(res, {res: 2, catName: db.cats[c].catName}); break; //уже активировaн
+				else afterCheckCookie(res, {res: 2, catName: db.cache[c].catName}); break; //уже активировaн
 			case '/getocw':
 				let objsExNames;
 				cw.getNamesExDetails(__dirname);
 				cw.once('finishGetNamesExDetails', (err, e) => {
-					if (err) return;
+					if (err) return sendJSON(res, {res: 0});
 					objsExNames = e;
 					cw.getNamesDetails(__dirname);
 					cw.once('finishGetNamesDetails', (err, f) => {
-						if (err) return;
+						if (err) return sendJSON(res, {res: 0});
 						const sendedData = {
 							objsExNames,
 							objsNames: f,
-							texsNames: world.info.texs,
+							texsNames: locs.texs,
 						}
 						if (/creater/.test(p)) {
 							sendedData.locsnames = cw.getLocsName();
-							getStaticFile(res, '/requires/creating_world_after.html', sendedData);
-						} else getStaticFile(res, '/requires/creating_world_after_no_creater.html', sendedData);
+							sendJSON(res, {res: 1, data: sendedData});
+						} else sendJSON(res, {res: 1, data: sendedData});
 					});
 				});
 				break;
 			case '/getacch':
-				fs.readFile(__dirname + '/databases/cch.js', (err, data) => {
+				editDBs.getDB('cch.js', (err, data) => {
 					if (err) { sendJSON(res, { res: 0 }); validator.log(err); }
-					else sendJSON(res, { res: 1, data: JSON.parse(data) });
+					else sendJSON(res, { res: 1, data });
 				}); break;
+			case '/getinh':
+				if (c > 0) {
+					editDBs.getDB('inherited.js', (err, data) => {
+						if (err) { sendJSON(res, { res: 0 }); validator.log(err); }
+						else sendJSON(res, { res: 1, data });
+					}, c);
+				} break;
+			case '/img/cch/':
+				getStaticFile(res, `/img/cch/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/patt/':
 				getStaticFile(res, `/img/cch/patt/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/wht/':
@@ -290,13 +455,12 @@ const server = http.createServer((req, res) => {
 			case '/img/textures/':
 				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
-				if (!n) break;
+				if (!n) { error404(res); break; }
 				if (n.length == 1) getStaticFile(res, `/img/details/${n[0]}.svg`, null, 'image/svg+xml')
 				else if (n.length == 2) getStaticFile(res, `/img/details/${n[0]}/${n[1]}.svg`, null, 'image/svg+xml'); break;
-			//на сервере фактический адрес должен быть /img/players/[pn игрока]/0.svg...1.svg...2.svg и т.д.
-			//на всякий случай проверь c > 0
-			case '/img/players/': //!!!
-				getStaticFile(res, `/img/players/${n}.svg`, null, 'image/svg+xml'); break;
+			case '/img/players/':
+				if (n) getStaticFile(res, `/img/players/${n[0]}.svg`, null, 'image/svg+xml')
+				else error404(res); break;
 			case '/css/img/button.png':
 				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
 			case '/img/indev.svg':
@@ -337,20 +501,27 @@ const server = http.createServer((req, res) => {
 					if (c <= 0) getJSON(req, res, contentLength, path)
 					else validator.log('${c} пытался отправить POST ${path}'); break;
 				case '/ar':
-					getJSON(req, res, contentLength, path); break;
+					getJSON(req, res, contentLength, path, c); break;
 				case '/crnewloc':
 					if (/creater/.test(p)) getJSON(req, res, contentLength, path)
 					else validator.log('${c} пытался отправить POST ${path}'); break;
+				case '/addpath':
+					if (/creater/.test(p)) getJSON(req, res, contentLength, path)
+					else validator.log('${c} пытался отправить POST ${path}'); break;
+				case '/scch':
+					if (c > 0 && db.cache[c].tmp.dontChooseCharacter) getJSON(req, res, contentLength, path, c); break;
 		}
 	}
-}).listen(process.env.PORT || 8080, () => console.log('Server is running'));
+}
+} catch (err) {
+	validator.log('внутри .server()' + err);
+}}).listen(process.env.PORT || 8080, () => console.log('Server is running'));
 
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
 	clients = [];
 
 wss.on('connection', (ws) => {
-	const timeofc = Date.now();
 	let	pn = null, c = null, cat = [null, null], control = null;
 
 	ws.on('message', (m) => {
@@ -361,23 +532,22 @@ wss.on('connection', (ws) => {
 					pn = ch.existingCookie(decodeURI(msg.token));
 					c = findClient(pn);
 					if (c == -2) {ws.close(); break;}
-					if (c == -1) clients.push({pn: pn, ws: ws, loc: db.cats[pn].game.public.lastPlace[3]});
+					if (!db.cache[pn]) editDBs.getSyncCat(pn);
+					if (c == -1) clients.push({pn: pn, ws: ws, loc: db.cache[pn].game.public.lastPlace[3]});
 					if (c >= 0) clients[c].ws = ws;
 
-					cat[0] = db.cats[pn].game;
-					cat[1] = db.cats[pn].game.public;
+					cat[0] = db.cache[pn].game;
+					cat[1] = db.cache[pn].game.public;
 					cat[0].last = Date.now();
 
-					if (!world.locs[cat[1].lastPlace[3]].public.fill.some(x => pn == x))
-								world.locs[cat[1].lastPlace[3]].public.fill.push(pn);
-
-					wsSend(2, 'one', {pn, itr: db.cats[pn].game.iteractions, name: db.cats[pn].catName, clan: db.cats[pn].game.clan}, ws);
+					if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
+					if (!locs.cache[cat[1].lastPlace[3]].public.fill.some(x => pn == x))
+								locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
+					wsSend(2, 'one', {pn, itr: db.cache[pn].game.iteractions, name: db.cache[pn].catName, clan: db.cache[pn].game.clan}, ws);
 					wsSend(3, 'one', {loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
-					wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
-					break;
+					wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);break;
 				} case 103: {
-					if (!validator.msg(pn, cat, 103, msg)) {ws.close(); break;}
-					if (pn <= 0 || !cat[0] || !cat[1]) {ws.close(); break;}
+					if (!validator.msg(pn, cat, 103, msg)) {ws.close();break;}
 					if (cat[0].block & (1 | 2)) {
 						if (msg.value[0] - cat[1].lastPlace[0] > 0) cat[1].lastPlace[2] = 1
 						else cat[1].lastPlace[2] = 0;
@@ -390,7 +560,7 @@ wss.on('connection', (ws) => {
 					const disX = msg.value[0] - cat[1].lastPlace[0], disY = msg.value[1] - cat[1].lastPlace[1],
 						dis = Math.round(Math.sqrt(Math.pow(disX, 2) + Math.pow(disY, 2))) * cat[1].speed,
 						stepX = disX / 5, stepY = disY / 5;
-					let	moving = null, orient = cat[1].lastPlace[2], p = world.locs[cat[1].lastPlace[3]].paths;
+					let	moving = null, orient = cat[1].lastPlace[2], p = locs.cache[cat[1].lastPlace[3]].paths;
 
 					if (!dis) break;
 
@@ -419,7 +589,7 @@ wss.on('connection', (ws) => {
 							cat[1].lastPlace[0] += stepX;
 							cat[1].lastPlace[1] += stepY;
 							if (i + dis/5 >= dis && moving) {
-								p = world.locs[cat[1].lastPlace[3]].public.fill;
+								p = locs.cache[cat[1].lastPlace[3]].public.fill;
 								p.some((i, j) => {
 									if (pn == i) {
 										p.splice(j, 1);
@@ -431,7 +601,8 @@ wss.on('connection', (ws) => {
 								p = findClient(pn);
 								if (p >= 0) {
 									clients[p].loc = cat[1].lastPlace[3];
-									world.locs[cat[1].lastPlace[3]].public.fill.push(pn);
+									if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
+									locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
 									wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
 									wsSend(3, 'one', {del: true, loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
 								} else ws.close();
@@ -448,13 +619,10 @@ wss.on('connection', (ws) => {
 					break;
 				} case 107: {
 					if (!validator.msg(pn, cat, 107, msg)) {ws.close(); break;}
-					fs.readFile(__dirname + `/databases/hard/${pn}/knowledge.js`, 'utf8', (err, data) => {
-						if (err) {
-							wsSend(7, 'one', `Ошибка!`, ws);
-							validator.log(err);
-						}
-						else wsSend(9, 'one', JSON.parse(data).knownPlayers, ws);
-					}); break;
+					editDBs.getDB('knowledge.js', (err, data) => {
+						if (err) wsSend(7, 'one', `Ошибка!`, ws)
+						else wsSend(9, 'one', data.knownPlayers, ws);
+					}, pn); break;
 				} case 108: {
 					if (!validator.msg(pn, cat, 108, msg)) {ws.close(); break;}
 					if (cat[0].block & 2) break;
@@ -469,25 +637,25 @@ wss.on('connection', (ws) => {
 							} break;
 						case -1:
 							if (cat[0].cantSendRelation.some(x => x == msg.pn)) {
-								wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname пока что не ответил${db.cats[msg.pn].game.public.gender ? '' : 'a'}` +
+								wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname пока что не ответил${db.cache[msg.pn].game.public.gender ? '' : 'a'}` +
 								` на прошлое действие`}, ws); break;
 							}
 							cat[0].isWaitingRelation.push(msg.pn);
 							cat[0].cantSendRelation.push(msg.pn);
-							db.cats[msg.pn].game.iteractions.push({pn, action: 1});
+							db.cache[msg.pn].game.iteractions.push({pn, action: 1});
 							wsSend(10, 'one', {pn, i: msg.i}, clients[findClient(msg.pn)].ws);
 					} break;
 				} case 106: {
 					if (!validator.msg(pn, cat, 106, msg)) {ws.close(); break;}
 					cat[0].iteractions.pop();
-					if (db.cats[msg.to].game.isWaitingRelation.some((x, i) => {
+					if (db.cache[msg.to].game.isWaitingRelation.some((x, i) => {
 						if (x == pn) {
-							db.cats[msg.to].game.isWaitingRelation.splice(i, 1);
+							db.cache[msg.to].game.isWaitingRelation.splice(i, 1);
 							return true;
 						}
 					})) {
-						db.cats[msg.to].game.cantSendRelation.splice(db.cats[msg.to].game.cantSendRelation.indexOf(pn), 1);
-						if (!msg.about) { wsSend(12, 'one', {add: {pn}, msg: '%catname не хочет рассказывать о себе'},clients[findClient(msg.to)].ws); break; }
+						db.cache[msg.to].game.cantSendRelation.splice(db.cache[msg.to].game.cantSendRelation.indexOf(pn), 1);
+						if (!msg.about) { wsSend(12, 'one', {add: {pn}, msg: '%catname не хочет рассказывать о себе'}, clients[findClient(msg.to)].ws); break; }
 						const sendedData = {};
 						msg.about = Object.keys(msg.about).reduce((a, x) => {
 							if (msg.about[x].value) { a[x] = msg.about[x]; return a; }
@@ -511,22 +679,17 @@ wss.on('connection', (ws) => {
 					} break;
 				} case 109: {
 					if (!validator.msg(pn, cat, 109, msg)) {ws.close(); break;}
-					fs.readFile(__dirname + `/databases/hard/${pn}/knowledge.js`, 'utf8', (err, data) => {
-						if (err) {
-							wsSend(7, 'one', `Ошибка!`, ws);
-							validator.log(err);
-						} else {
-							data = JSON.parse(data);
-							if (Object.keys(data.knownPlayers).length > 100) { wsSend(7, 'one', 'Вы не можете помнить больше ста котиков'); return; }
-							data.knownPlayers[msg.pn] = msg.data;
-							fs.writeFile(__dirname + `/databases/hard/${pn}/knowledge.js`, JSON.stringify(data), (err) => {
-								if (err) {
-									wsSend(7, 'one', `Ошибка`, ws);
-									validator.log(err);
-								}
-							});
+					editDBs.getDB('knowledge.js', (err, data) => {
+						if (err) { wsSend(7, 'one', `Ошибка!`, ws); return; }
+						if (Object.keys(data.knownPlayers).length > 100) { wsSend(7, 'one', 'Вы не можете помнить больше ста котиков'); return; }
+						for (let p in msg.data) {
+							if (!msg.data.hasOwnProperty(p)) continue;
+							data.knownPlayers[msg.pn][p] = msg.data[p];
 						}
-					});
+						editDBs.setDB('knowledge.js', data, err => {
+							if (err) wsSend(7, 'one', `Ошибка`, ws);
+						}, pn);
+					}, pn);
 				}
 			}
 		} catch (err) {
@@ -534,23 +697,9 @@ wss.on('connection', (ws) => {
 		}
 	});
 	ws.on('close', () => {
-		try {
-			const timeofclose = (Date.now() - timeofc), minute = ` или ${Math.round(timeofclose / 60000)} минут`;
-			console.log(`Сокет закрылся через ${Math.round(timeofclose / 1000)} секунд${(timeofclose / 6000) > 2 ? minute : ''}`);
-		} catch (err) {
-			validator.log(err);
-		}
+		console.log('Сокет закрылся');
 	});
 });
-
-/*
-Object.keys(db.cats).forEach(x => {
-	db.cats[x].game.public.birth = other.time;
-	console.log(db.cats[x].game, (db.cats[x].game.die - db.cats[x].game.public.birth) /60/60/24);
-});
-editDBs.save('db');
-*/
-
 
 function findClient(pn) {
       if (!pn || pn <= 0) return -2;
@@ -596,7 +745,8 @@ function serveMoons(pn, string) {
 		}
 		return string;
 	}
-	const moons = (other.time - db.cats[pn].game.public.birth) / 150 / 24 / 60;
+	if (!db.cache[pn]) editDBs.getSyncCat(pn);
+	const moons = (other.time - db.cache[pn].game.public.birth) / 60 / 60 / 60;
 	if (string) {
 		const floorMoons = Math.floor(moons),
 			rus = moon_or_moons(floorMoons),
@@ -614,22 +764,24 @@ function serveMoons(pn, string) {
 function serveBeforeSend(pn, update) {
 	let t, m = serveMoons(pn), size = 0.3;
 
-	if (Date.now() - db.cats[pn].game.last < 15 * 60000) t = 'go'
-	else if (Date.now() - db.cats[pn].game.last < 20 * 60000) t = 'doze'
+	if (!db.cache[pn]) editDBs.getSyncCat(pn);
+	if (Date.now() - db.cache[pn].game.last < 15 * 60000) t = 'go'
+	else if (Date.now() - db.cache[pn].game.last < 20 * 60000) t = 'doze'
 	else t = 'sleep';
 
-	if (m <= 12) size += m / 12 * 0.4
-	else size += (m - 12) / 188 * 0.3;
+	if (m <= 12) size += m / 12 * 0.5
+	else size += 0.5 + (m - 12) / 188 * 0.2;
 
 	if (update) return {status: t, moons: serveMoons(pn, true), size};
 	return Object.assign({},
-			db.cats[pn].game.public,
-			{pn, status: t, moons: serveMoons(pn, true),size});
+		 db.cache[pn].game.public,
+		 {pn, status: t, moons: serveMoons(pn, true),size});
 }
 
 function serveLocBeforeSend(loc) {
-	const q = world.locs[loc].public.fill.map((x, i) => serveBeforeSend(x)),
-		w = Object.assign({}, world.locs[loc].public);
+	if (!locs.cache[loc]) editDBs.getSyncLoc(loc);
+	const q = locs.cache[loc].public.fill.map((x, i) => serveBeforeSend(x)),
+		w = Object.assign({}, locs.cache[loc].public);
 	w.fill = q;
 	return w;
 }
@@ -663,23 +815,35 @@ function error404(res) {
 function getStaticFile(res, path, json, contentType) {
 	if (json) {
 		res.setHeader('content-type', 'application/json; charset=utf-8');
-		fs.readFile(__dirname + path, 'utf8', (err, data) => {
+		fs.access(__dirname + path, fs.constants.F_OK, err => {
 			if (err) {
-				res.end(JSON.stringify({ res: 0 }));
-				validator.log(err);
-			} else res.end(JSON.stringify({ res: 1, data: data, add: json }));
+				res.statusCode = 404;
+				return res.end(JSON.stringify({ res: 0 }));
+			}
+			fs.readFile(__dirname + path, 'utf8', (err, data) => {
+				if (err) {
+					res.end(JSON.stringify({ res: 0 }));
+					validator.log('getStaticFile: ' + err);
+				} else res.end(JSON.stringify({ res: 1, data: data, add: json }));
+			});
 		});
 	} else {
-		fs.readFile(__dirname + path, (err, data) => {
-			if (err) error500(res, 'Произошла ошибка на стороне сервера или запрошен несуществующий ресурс. Error in getStaticFile.')
-			else {
-				res.setHeader('content-type', contentType + ';charset=utf-8');
-				res.end(data);
-			}
+		fs.access(__dirname + path, fs.constants.F_OK, err => {
+			if (err) return error404(res);
+			fs.readFile(__dirname + path, (err, data) => {
+				if (err) {
+					error500(res, 'Произошла ошибка на стороне сервера.');
+					validator.log('getStaticFile: ' + err);
+				} else {
+					res.setHeader('content-type', contentType + ';charset=utf-8');
+					res.end(data);
+				}
+			});
 		});
 	}
 }
 
+/*
 function addDevice(pn, req) {
 	if (!db.cats[pn]) return;
 	let d = req.headers['user-agent'].match(/\((.*?)\)/);
@@ -696,3 +860,4 @@ function addDevice(pn, req) {
 		}
 	}
 }
+*/

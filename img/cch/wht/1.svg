@@ -1,115 +1,16 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="100"
-   height="80"
-   viewBox="0 0 100 80"
-   version="1.1"
-   id="svg7526"
-   sodipodi:docname="1.svg"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
-  <defs
-     id="defs7520">
-    <linearGradient
-       inkscape:collect="always"
-       id="linearGradient8154">
-      <stop
-         style="stop-color:#000000;stop-opacity:1;"
-         offset="0"
-         id="stop8150" />
-      <stop
-         style="stop-color:#000000;stop-opacity:0;"
-         offset="1"
-         id="stop8152" />
-    </linearGradient>
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient8154"
-       id="radialGradient8160"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(-1.8295193,1.186585,-1.0426958,-1.7294367,178.16081,34.983497)"
-       cx="50.059196"
-       cy="34.629269"
-       fx="50.059196"
-       fy="34.629269"
-       r="16.153098" />
-  </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="5.3052786"
-     inkscape:cx="61.627259"
-     inkscape:cy="41.636164"
-     inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
-     showgrid="false"
-     inkscape:window-width="1366"
-     inkscape:window-height="705"
-     inkscape:window-x="1272"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1"
-     inkscape:snap-nodes="false" />
-  <metadata
-     id="metadata7523">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1">
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:-1.29999995px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       x="9.0677061"
-       y="77.973686"
-       id="text8081"><tspan
-         sodipodi:role="line"
-         x="9.0677061"
-         y="77.973686"
-         style="font-size:10.66666698px;letter-spacing:-1px"
-         id="tspan8292">правая лапка 1/5</tspan></text>
-    <path
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 60.128793,53.234205 13.382897,0.376983 c 0,0 -0.376983,-8.482118 -3.958322,-10.555525 C 65.97203,40.982257 57.112929,40.416782 57.112929,40.416782 l 2.261898,-16.21027 c 0,0 -2.827373,0.753966 -4.523797,1.319441 -1.696423,0.565474 -4.523796,-1.696424 -5.277762,-1.696424 -0.753966,0 -7.162677,0.188492 -7.162677,0.188492 l 0.620935,17.175395"
-       id="path8268"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccsccsscc" />
-    <path
-       style="fill:#e5e7e5;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
-       d="m 21.299541,28.9188 c 0,0 5.089271,25.257863 6.22022,26.954286 1.130949,1.696424 29.970151,0.188492 31.478083,0.188492 1.507932,0 -0.188492,-11.121 -3.769831,-12.44044 C 51.646675,42.301697 40.902658,41.35924 40.148692,41.924714 39.394726,42.490189 39.960201,22.887071 38.64076,23.829529 c -1.31944,0.942458 -4.712288,5.843237 -6.408711,5.843237 -1.696424,0 -0.942458,-1.696424 -3.204356,-1.319441 -2.261898,0.376983 -5.089271,2.827373 -6.031728,2.073407 C 22.053507,29.672766 21.299541,28.9188 21.299541,28.9188 Z"
-       id="path8266"
-       inkscape:connector-curvature="0" />
-    <text
-       id="text8298"
-       y="69.868553"
-       x="26.437498"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:-1px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       xml:space="preserve"><tspan
-         id="tspan8296"
-         style="font-size:10.66666698px;letter-spacing:-1px"
-         y="69.868553"
-         x="26.437498"
-         sodipodi:role="line">передняя</tspan></text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80">
+    <defs>
+        <linearGradient id="a">
+            <stop style="stop-color:#000000;stop-opacity:1" offset="0"/>
+            <stop style="stop-color:#000000;stop-opacity:0" offset="1"/>
+        </linearGradient>
+    </defs>
+    <text style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:-1.29999995px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none" x="9.068" y="77.974">
+        <tspan x="9.068" y="77.974" style="font-size:10.66666698px;letter-spacing:-1px">правая лапка 1/5</tspan>
+    </text>
+    <path style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" d="M60.129 53.234l13.383.377s-.377-8.482-3.959-10.555c-3.581-2.074-12.44-2.64-12.44-2.64l2.262-16.21s-2.828.754-4.524 1.32c-1.696.565-4.524-1.696-5.278-1.696-.754 0-7.162.188-7.162.188l.62 17.175"/>
+    <path style="fill:#e5e7e5;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1" d="M21.3 28.919s5.089 25.258 6.22 26.954c1.13 1.697 29.97.189 31.478.189 1.508 0-.189-11.121-3.77-12.44-3.581-1.32-14.325-2.263-15.08-1.697-.753.565-.188-19.038-1.507-18.095-1.32.942-4.713 5.843-6.409 5.843-1.696 0-.942-1.697-3.204-1.32-2.262.377-5.09 2.828-6.032 2.074-.942-.754-1.696-1.508-1.696-1.508z"/>
+    <text y="69.869" x="26.437" style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:-1px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none">
+        <tspan style="font-size:10.66666698px;letter-spacing:-1px" y="69.869" x="26.437">передняя</tspan>
+    </text>
 </svg>

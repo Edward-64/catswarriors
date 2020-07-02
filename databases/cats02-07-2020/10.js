@@ -1,0 +1,29 @@
+{
+        "catName":"Светлошёрст",
+        "role":"user",
+        "alias":"Отец Всея Ветра",
+        "password":"lightсветлыйofВетра",
+        "devices":[],
+        "cookie":"cwGame-7XpG27G9At2VNzVLBCbNQcBj85KhmQVM",
+        "dateOfReg":1593704914585,
+        "lastVisitOfSite":1593704914585,
+        "infractions":{},
+        "game":{
+                "public":{
+                        "gender":1,
+                        "health":100,
+                        "action":0,
+                        "speed":50,
+                        "lastPlace":[80,15,0,1],
+                        "birth":896201,
+                        "skin":"/img/players/118589234514.svg"
+                },
+                "die":30488201,
+                "lastActiv":1593704014570,
+                "block":0,"isWaitingRelation":[],
+                "cantSendRelation":[],
+                "iteractions":[],
+                "clan":"племя Ветра"
+        },
+        "tmp":{}
+}

@@ -9,19 +9,40 @@
 <body>
 	<div id="info" class="style-of-game info-window"></div>
 	<div id="next" class="style-of-game hight-action-window"><form name="next" onsubmit="return false;"></form></div>
-	<div id="sky" style="height: 50%; width: 100%; background: #97c0d9"></div>
-	<div id="nearloc" style="height: 10%; width: 100%; background: #9ca754"></div>
-	<div id="headloc" style="height: 30%; width: 100%; background: #788837">
+	<div id="sky" style="height: 48%; width: 100%; background: #97c0d9"></div>
+	<div id="nearloc" style="height: 8%; width: 100%; background: #9ca754"></div>
+	<div id="headloc" style="height: 28%; width: 100%; background: #788837">
 		<span id="cats"></span>
 		<span id="details"></span>
 	</div>
 	<div class="lowpanel">
-		<div id="iteractions" class="style-of-game"><span></span><div style="margin-top: 5px;"><button class="form" style="width: 40%;"></button><button class="form" style="width: 40%;margin: 0 3px;"></button><button class="form" style="width: 15%;font-size: 10pt;" title="Показать все уведомления"></button></div></div>
-		<div id="meowing" class="style-of-game">
-			<form name="meowing" onsubmit="sendMeow(); return false;">
-				<input class="form" style="padding-left: 5px; width: 250px" name="meowing" autocomplete="off" placeholder="Пишите здесь">
-				<button class="form" type="button" onclick="sendMeow();">Мяукнуть</button>
-			</form>
+		<div style="width:30%;" class="part-of-lowpanel">
+			<div id="iteractions" class="style-of-game">
+				<span></span>
+				<div style="margin-top: 5px;">
+					<button class="form" style="width: 40%;"></button>
+					<button class="form" style="width: 40%;margin: 0 3px;"></button>
+					<button class="form" style="width: 10%;font-size: 10pt;"></button>
+				</div>
+			</div>
+		</div>
+		<div style="width:35%;" class="part-of-lowpanel">
+			<div id="meowing" class="style-of-game">
+				<form name="meowing" onsubmit="sendMeow(); return false;">
+					<input class="form" style="padding-left: 5px; width:65%" name="meowing" autocomplete="off" placeholder="Пишите здесь">
+					<button class="form" style="width:20%; overflow: hidden;" type="button" onclick="sendMeow();">Мяукнуть</button>
+				</form>
+			</div>
+		</div>
+		<div style="width:30%;" class="part-of-lowpanel">
+			<div id="othersActions" class="style-of-game">
+				<span>Другие действия</span>
+				<div style="margin-top:3px;" id="actions">
+					<div class="style-of-game part-of-actions" onclick="app.actionsMyself();" title="Выполнить действие с самим собой">
+						<img src="/img/cch/patt/0.svg" width="40" height="40">
+					</div>
+				</div>
+			</div>
 		</div>
 	</div>
 <script src="/js/play.js"></script>

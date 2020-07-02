@@ -18,27 +18,8 @@ app.cch = {
       ears: 'solid'
 }
 
-/*
-	all[0] - цвет тела
-	all[1] - контрастность тела
-	all[2] - рисунок на теле
-	all[3] - контрастность рисунка на теле. Если 0, то контрастность не применялась
-	all[4] - белые элементы
-	all[5] - цвет глаз
-	all[6] - 11: светло-розовые участки везде
-		   10: только на ухе
-		    1: только на носу
-
-	colorsSkin[0] - черный
-	colorsSkin[1] - серый
-	colorsSkin[2] - бурый темный
-	colorsSkin[3] - бурый светлый, белый или светлый абрикосовый
-	colorsSkin[4] - циннамон или красный
-	colorsSkin[5] - светлая корица
-*/
-
 {
-	const colorsWool = [[143,15,128], [6,44,128], [8,65,128], [20,191,128],[0,0,128]],
+	const colorsWool = [[143,15,128], [6,44,128], [8,90,128], [20,191,128],[0,0,128]],
 		colorsSkin = [[176,13,68],[177,13,140],[245,41,103],[247,126,199],[6,100,100],[7,52,156]],
 		colorsEyes = [[107,105,94],[59,102,142],[39,184,143],[26,245,131],[13,143,100],[136,85,142]],
 		all = [3, 128, 0, 0, 0, 0, 0];
@@ -62,7 +43,7 @@ app.cch = {
 				], str: o.getElementById('path5176').style.fill },
 			shadow: { arr: [
 					colorsWool[v][0],
-					colorsWool[v][1]/*v == 4 ? 0 : colorsWool[v][1] + 32 / S > 254 ? 254 :  colorsWool[v][1] + 32 / S*/,
+					colorsWool[v][1],
 					colorsWool[v][2] - 32 < 1 ? 1 : colorsWool[v][2] - 32
 				], str: o.getElementById('leftLowPaw1').style.fill }
 			};
@@ -303,7 +284,8 @@ app.cch = {
 	            for (let i = 0; i < b.children.length; i++) b.children[i].style.opacity = 0;
 			for (let i = 0; i < fromServer.lastWhite; i++) {
 				app.cch.next.wht.v = i;
-				if (raw[4] & 1 << i) {
+
+						if (raw[4] & 1 << i) {
 					app.cch.funcs.nextWhite(1);
 					app.cch.funcs.addWhite();
 				}

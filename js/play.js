@@ -9,22 +9,26 @@ const	details = document.getElementById('details'),
 	CATS = {},
 	app = {
 		iteractions: [],
-		known: JSON.parse(localStorage.getItem('knownPlayers')),
+		known: null,
 		nearloc: document.getElementById('nearloc'),
 		info: document.getElementById('info'),
 		next: document.forms.next,
 		itActWin: document.getElementById('iteractions'),
+		getKnown(pn) {
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: 107 }));
+			};
+		},
 		fillInfoAsCat(pn) {
 			this.info.innerHTML = '';
 			this.info.style.display = 'block';
 			if (!this.known) {
-				if (ws.readyState === WebSocket.OPEN) {
-					ws.send(JSON.stringify({ type: 107 }));
-				}; this.info.style.display = 'none';
+				this.getKnown(pn);
+				this.info.style.display = 'none';
 			} else if (pn == PN) {
-				this.info.innerHTML = 'Это Вы';
+				this.info.innerHTML = 'Это я';
 			} else if (!this.known[pn]) {
-				this.info.innerHTML = 'Это неизвестный для Вас котик';
+				this.info.innerHTML = 'Я не знаю этого котика... Или не помню.';
 			} else {
 				Object.keys(this.known[pn]).forEach(x => {
 					const div = document.createElement('div');
@@ -38,9 +42,9 @@ const	details = document.getElementById('details'),
 				this.itActWin.style.display = 'block';
 				if (!doLess) this.iteractions.push({pn, requiredData, action});
 
-				const buttons = this.itActWin.childNodes[1].childNodes;
+				const buttons = this.itActWin.children[1].children;
 
-				this.itActWin.childNodes[0].innerHTML = interfaces[0];
+				this.itActWin.children[0].innerHTML = interfaces[0];
 				buttons[0].textContent = interfaces[1];
 				buttons[0].onclick = () => this[funcs[0]](pn, requiredData);
 				buttons[1].textContent = interfaces[2];
@@ -54,15 +58,17 @@ const	details = document.getElementById('details'),
 			}
 		},
 		replaceToCatName(pn, text) {
-			text = text.replace(/%catname/ig, `${app.known[pn] ? app.known[pn][0].value : 'Неизвестный котик'}`);
+			text = text.replace(/%catname/ig, `${app.known[pn] && app.known[pn][0] ? app.known[pn][0].value : 'Неизвестный котик'}`);
 			return text;
 		},
 		nextClear(text) {
 			this.next.innerHTML = '';
 			document.getElementById('next').style.display = 'block';
-			const firstDiv = document.createElement('div'); firstDiv.classList.add('ul');
-			firstDiv.innerHTML = text;
-			this.next.appendChild(firstDiv);
+			if (text) {
+				const firstDiv = document.createElement('div'); firstDiv.classList.add('ul');
+				firstDiv.innerHTML = text;
+				this.next.appendChild(firstDiv);
+			}
 		},
 		turnOnLowerStack() {
 			this.iteractions.pop(); //this.send(109, {code: 'del'});
@@ -74,7 +80,7 @@ const	details = document.getElementById('details'),
 						    this.runTheActionWith[a].add.interfaces[2]]
 				this.fillIteraction(app.iteractions[l].pn, this.iteractions[l].requiredData,
 				served, this.runTheActionWith[a].add.funcs, a, true);
-			} else { this.itActWin.childNodes[1].childNodes[2].textContent = '0'; this.itActWin.style.display = 'none' };
+			} else { this.itActWin.children[1].children[2].textContent = '0'; this.itActWin.style.display = 'none' };
 
 		},
 		showAsksAboutYou(pn, data) {
@@ -131,6 +137,55 @@ const	details = document.getElementById('details'),
 			}
 			this.next.appendChild(b);
 		},
+		actionsMyself() {
+			this.nextClear('Выполнить действие с самим собой: ');
+			Object.keys(this.runTheActionMyself).forEach(i => {
+				i = +i; if ((i && app.statusOfAction == i) || app.runTheActionMyself[i].status) return;
+
+				console.log(i);
+
+				let b = document.createElement('button');
+				b.style.marginBottom = '3px'; b.style.width = '98%'; b.style.display = 'block';
+				b.classList.add('form'); b.textContent = app.runTheActionMyself[i].name;
+				b.addEventListener('click', () => {
+					document.getElementById('next').style.display = 'none';
+					this.send(108, {i});
+					this.statusOfAction = i;
+				}, {once:true});
+
+				this.next.appendChild(b);
+			});
+		},
+		actionsWith(pn) {
+			if (!this.known) { this.getKnown(pn); return; }
+			const msg = this.known[pn] && this.known[pn][0] ? `Взаимодействовать c ${CATS[pn].gender ? 'котом' : 'кошкой'}` +
+			` по имени ${this.known[pn][0].value}` : 'Взаимодействовать c неизвестным котиком';
+			if (!document.getElementById('with')) {
+				const b = document.createElement('div');
+				b.classList.add('style-of-game'); b.classList.add('part-of-actions'); //b.classList.add('lower-text');
+				b.title = msg;
+				b.id = 'with'; b.innerHTML = '<img src="/img/cch/patt/0.svg" width="40" height="40">';
+				document.getElementById('actions').appendChild(b);
+			}
+			document.getElementById('with').onclick = () => {
+				this.nextClear(msg + ': ');
+				Object.keys(this.runTheActionWith).forEach(i => {
+					i = +i; if ((i && this.statusOfAction == -i) || this.runTheActionWith[i].status.some(j => pn == j)) return;
+
+					let b = document.createElement('button');
+					b.style.marginBottom = '3px'; b.style.width = '98%';
+					b.classList.add('form'); b.textContent = this.runTheActionWith[i].name;
+					b.addEventListener('click', () => {
+						document.getElementById('next').style.display = 'none';
+						this.send(108, {pn, i: -i});
+						this.statusOfAction = -i;
+						if (i) this.runTheActionWith[i].status.push(pn);
+					}, {once:true});
+
+					this.next.appendChild(b);
+				});
+			}
+		},
 		statusOfAction: null,
 		runTheActionMyself: {
 			0: {
@@ -147,12 +202,8 @@ const	details = document.getElementById('details'),
 					const control = setInterval(() => {
 						if (!CATS[pn].listingframes) {
 							clearInterval(control);
-							const cat = document.getElementById(`cat${pn}`).childNodes[1];
-							cat.src = '/img/players/999.svg';
-							cat.onload = () => {
-								cat.width = 110 * CATS[pn].size;
-								cat.height = 140 * CATS[pn].size;
-							}
+							const cat = document.getElementById(`cat${pn}`).children[1];
+							cat.style.backgroundPositionX = -220 * CATS[pn].size + 'px';
 							if (pn == PN) {
 								app.runTheActionMyself[2].status = 0;
 								this.status = 1;
@@ -165,12 +216,8 @@ const	details = document.getElementById('details'),
 				status: 1,
 				name: 'Встать',
 				doIt(pn) {
-					const cat = document.getElementById(`cat${pn}`).childNodes[1];
-					cat.src = '/img/players/0.svg';
-					cat.onload = () => {
-						cat.width = 265 * CATS[pn].size;
-						cat.height = 120 * CATS[pn].size;
-					}
+					const cat = document.getElementById(`cat${pn}`).children[1];
+					cat.style.backgroundPositionX = '0px';
 					if (pn == PN) {
 						app.runTheActionMyself[1].status = 0;
 						this.status = 1;
@@ -234,25 +281,30 @@ function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 70,
 		actions = document.createElement('span');
 	if (chunk[2]) { scale = 'scale(1)'; widthCat = 200; }
-	div.innerHTML = `</div><div></div><img style="transform: ${scale}"` +
-	`src="/img/players/0.svg" width="${265 * CATS[pn].size}" height="${120 * CATS[pn].size}"><img src="/css/img/lowMsg.png"` +
-	` style="position: absolute; bottom: ${120 * CATS[pn].size - 7}px; right: 0px; display: none">`;
+
+	div.innerHTML = `<div></div><div style="transform: ${scale}; background: url(${CATS[pn].skin});` +
+	`background-position-x: 0px;width:${220 * CATS[pn].size + 'px'};height:${140 * CATS[pn].size + 'px'}` +
+	`; background-size:1200%;"></div>`;
+
 	div.classList.add('cat');
 	div.id = `cat${pn}`;
 	div.style.left = `${chunk[0] * x - widthCat * CATS[pn].size}px`;
 	div.style.bottom = `${chunk[1] * y}px`;
 	div.style.zIndex = 100 - chunk[1];
 
-	actions.classList.add('style-of-game');
+/*	actions.classList.add('style-of-game');
 	actions.classList.add('action-window');
 
-	div.onclick = () => {
+	function forEvent() {
+		actions.style.display = 'none';
+	}
+
+	div.addEventListener('click', () => {
 		actions.innerHTML = '';
-		actions.style.display = 'block';
 		if (pn == PN) {
 			Object.keys(app.runTheActionMyself).forEach(i => {
-				i = Number.parseInt(i);
-				if ((i && app.statusOfAction == i) || app.runTheActionMyself[i].status) return;
+				i = +i; if ((i && app.statusOfAction == i) || app.runTheActionMyself[i].status) return;
+
 				let b = document.createElement('button');
 				b.style.marginBottom = '3px'; b.style.width = '150px';
 				b.classList.add('form'); b.textContent = app.runTheActionMyself[i].name;
@@ -262,32 +314,23 @@ function addCat(pn, chunk) {
 					app.send(108, {i});
 					app.statusOfAction = i;
 				}
+
 				actions.appendChild(b);
 			});
 		} else {
-			Object.keys(app.runTheActionWith).forEach(i => {
-				i = Number.parseInt(i);
-				if ((i && app.statusOfAction == -i) || app.runTheActionWith[i].status.some(j => pn == j)) return;
-				let b = document.createElement('button');
-				b.style.marginBottom = '3px'; b.style.width = '150px';
-				b.classList.add('form'); b.textContent = app.runTheActionWith[i].name;
-				b.onclick = (e) => {
-					actions.style.display = 'none';
-					if (e.target.tagName != 'BUTTOM') e.stopPropagation();
-					app.send(108, {pn, i: -i});
-					app.statusOfAction = -i;
-					if (i) app.runTheActionWith[i].status.push(pn);
-				}
-				actions.appendChild(b);
-			});
+
 		}
-	}
-	div.onmouseover = () => {
+		actions.style.display = 'block';
+	}, {capture:true});
+*/
+	div.addEventListener('mouseover', () => {
 		app.fillInfoAsCat(pn);
-	}
-	div.onmouseout = () => {
+		if (pn != PN) app.actionsWith(pn);
+	});
+	div.addEventListener('mouseout', () => {
 		app.info.style.display = 'none';
-	}
+	});
+
 	div.appendChild(actions);
 	cats.appendChild(div);
 }
@@ -299,7 +342,7 @@ function serveChunk(crd) {
 }
 
 function addMeow(pn, msg) {
-	let	catMsg = document.getElementById(`cat${pn}`).childNodes[0], maxMsg = 3, font = '';
+	let	catMsg = document.getElementById(`cat${pn}`).children[0], maxMsg = 3, font = '';
 	const	newMsg = document.createElement('div');
 
 	if (msg.length > 60) maxMsg = 2;
@@ -307,11 +350,10 @@ function addMeow(pn, msg) {
 
 	if (CATS[pn].size < 0.4) font = 'font-size:7pt;'
 	else if (CATS[pn].size < 0.5) font = 'font-size:8pt;'
-	else if (CATS[pn].size < 0.7) font = 'font-size:9pt;'
+	else if (CATS[pn].size < 0.8) font = 'font-size:9pt;'
 
-	catMsg.style.maxWidth = `${265 * CATS[pn].size}px`;
-	if (CATS[pn].lastPlace[2]) catMsg.style.textAlign = 'right';
-	if (catMsg.childNodes.length >= maxMsg) catMsg.childNodes[0].remove();
+	catMsg.style.maxWidth = `${300 * CATS[pn].size}px`;
+	if (catMsg.children.length >= maxMsg) catMsg.children[0].remove();
 	newMsg.classList.add('msg-on-cat');
 	msg  = `<div class="style-of-game" style="display: inline-block;${font}">${msg}</div>`;
 	newMsg.innerHTML = msg;
@@ -329,14 +371,15 @@ function sendMeow() {
 }
 
 function changeOrient(pn, o, widthCat) {
-	const cat = document.getElementById(`cat${pn}`);
+	const cat = document.getElementById(`cat${pn}`); o = +o;
 	if (o) {
-		cat.childNodes[1].style.transform = 'scale(1)';
-		cat.childNodes[0].style.textAlign = 'right';
+		cat.children[1].style.transform = 'scale(1)';
+//		cat.children[0].style.textAlign = 'right';
+		if (widthCat) return 200 * CATS[pn].size;
 	} else {
-		cat.childNodes[1].style.transform = 'scale(-1, 1)';
-		cat.childNodes[0].style.textAlign = '';
-		if (widthCat) widthCat = 70 * CATS[pn].size;
+		cat.children[1].style.transform = 'scale(-1, 1)';
+//		cat.children[0].style.textAlign = '';
+		if (widthCat) return 70 * CATS[pn].size;
 	}
 }
 
@@ -344,10 +387,10 @@ function animation(pn, s) {
 	clearTimeout(CATS[pn].steping); clearInterval(CATS[pn].listingframes); CATS[pn].lastPlace = s.oldchunk;
 	const cat = document.getElementById(`cat${pn}`),
 		step = (s.newchunk[1] - s.oldchunk[1]) * CATS[pn].speed / s.dis;
-	let   widthCat = 200 * CATS[pn].size;
+	let   widthCat = true;
 
 	CATS[pn].lastPlace[2] = s.newchunk[2];
-	changeOrient(pn, s.newchunk[2], widthCat);
+	widthCat = changeOrient(pn, s.newchunk[2], widthCat);
 
 	for(let i = 0; i < s.dis; i+=CATS[pn].speed) {
 		CATS[pn].steping = setTimeout(() => {
@@ -355,17 +398,21 @@ function animation(pn, s) {
 			cat.style.zIndex = 100 -  Math.round(CATS[pn].lastPlace[1] += step);
 		}, i);
 	}
-	let j = 1;
+	let	buffer = -880 * CATS[pn].size,
+		start = buffer,
+		next = -220 * CATS[pn].size,
+		stop = -2540 * CATS[pn].size;
 	CATS[pn].listingframes = setInterval(() => {
-			if (j > 6) j = 1;
-			cat.childNodes[1].src = `/img/players/${j++}.svg`;
-	}, 41 * 4);
+		if (buffer < stop) buffer = start;
+		cat.children[1].style.backgroundPositionX = `${buffer}px`;
+		buffer += next;
+	}, 121);
 	cat.style.transition = `left ${s.dis}ms linear, bottom ${s.dis}ms linear`;
 	cat.style.left = `${s.newchunk[0] * x - widthCat}px`;
 	cat.style.bottom = `${s.newchunk[1] * y}px`;
 	cat.ontransitionend = () => {
 		clearInterval(CATS[pn].listingframes); CATS[pn].listingframes = null;
-		cat.childNodes[1].src = '/img/players/0.svg';
+		cat.children[1].style.backgroundPositionX = '0px';
 	};
 }
 ws.onopen = () => {
@@ -409,12 +456,12 @@ ws.onmessage = (e) => {
 				l = data.loc.landscape.length;
 				for(let j = 0; j < l; j++) {
 					const newdetail = document.createElement('img');
-					if (!data.loc.landscape[j].disallow) newdetail.style.pointerEvents = 'none';
+					newdetail.style.pointerEvents = 'none';
 					newdetail.src = data.loc.landscape[j].texture;
 					newdetail.width = data.loc.landscape[j].width;
 					newdetail.height = data.loc.landscape[j].height;
 					newdetail.style.position = 'absolute';
-					if (data.loc.landscape[j].low) newdetail.style.zIndex = data.loc.landscape[j].low
+					if (data.loc.landscape[j].z) newdetail.style.zIndex = data.loc.landscape[j].z
 					else newdetail.style.zIndex = 100 -  data.loc.landscape[j].chunk[1];
 					newdetail.style.left = `${data.loc.landscape[j].chunk[0] * x}px`;
 					newdetail.style.bottom = `${data.loc.landscape[j].chunk[1] * y}px`;
@@ -453,35 +500,34 @@ ws.onmessage = (e) => {
 
 				app.simpleNextWindow(data.pn, [buffer, 'Запомнить', 'Не запоминать',
 					() => {
-						app.known[data.pn] = data.sendedData;
-						localStorage.setItem('knownPlayers', JSON.stringify(app.known));
+                                    for (let p in data.sendedData) {
+                                          if (!data.sendedData.hasOwnProperty(p)) continue;
+                                          app.known[data.pn][p] = data.sendedData[p];
+                                    }
 						document.getElementById('next').style.display = 'none';
 						app.send(109, {pn: data.pn, data: data.sendedData});
 					},
 					() => {
 						document.getElementById('next').style.display = 'none';
 					}]); break;
-			} case 12: {
-				app.notification(app.replaceToCatName(data.add.pn, data.msg));
-				break;
-			} case 8: {
+			} case 12:
+				app.notification(app.replaceToCatName(data.add.pn, data.msg)); break;
+			  case 8:
 				if (data != PN) {
 					document.getElementById(`cat${data}`).remove();
 					delete CATS[data];
 				} break;
-			} case 7: {
-				alert(data); break;
-			} case 9: {
-				localStorage.setItem('knownPlayers', JSON.stringify(data)); app.known = data; break;
-			}
+			  case 7: app.notification(data); break;
+			  case 9: app.known = data; break;
 		}
 	}
 }
 
-headloc.onmousedown = (e) => {
+//document.getElementById('movelistener')
+headloc.addEventListener('mousedown', (e) => {
 	const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight;
 	app.send(103, { value: serveChunk([e.pageX, e.pageY - excess]) });
-}
+});
 
 ws.onclose = () => {
 	console.log('соединение закрылось');

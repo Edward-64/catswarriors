@@ -14,6 +14,7 @@ body {
 	border-radius: 5px;
 	background-color: #bb8b54;
 	border: 2px solid #0f0905;
+	overflow: hidden;
 }
 
 .form:focus {
@@ -187,11 +188,12 @@ body {
 
 .cw-setting {
 	display: flex;
-	justify-content: space-around;
+	justify-content: center;
 }
 
 .cw-part-of-setting {
 	text-align: center;
+	margin: 0px 30px;
 	width: 220px;
 	display: flex;
 	flex-direction: column;

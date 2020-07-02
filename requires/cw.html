@@ -1,0 +1,118 @@
+<button class="back-button" type="button" onclick="window.location='/';">Вернуться назад</button>
+<div id="preload"><img src="/img/preloader.svg"></div>
+<div id="content" style="display:none;">
+<button class="form cr-w-button" type="button" onclick="app.cw.f.createNewLocation();">Создать новую локацию</button>
+<button class="form cr-w-button" type="button" onclick="app.cw.f.editExsisLocation();">Изменить существующую локацию</button>
+<div id="createNewLocation" style="display: none">
+	<div class="cw-setting">
+		<div class="cw-part-of-setting">
+			<h2>Добавление объекта</h2>
+			<div id="cr_add">
+				<button class="form" style="width: 100%;margin-bottom: 10px;" onclick="app.cw.f.showCreater()">Создать новый объект</button>
+				<button class="form" style="width: 100%;" onclick="app.cw.f.showAdder()">Выбрать из существующих</button>
+			</div>
+			<div id="adder" style="display: none">
+				<div class="cw-block">
+					<button class="form" style="position: absolute;top: 0px;" onclick="app.cw.f.turnBack('adder');" title="Переключиться на создание собственных объектов">&lt;</button>
+					<button id="leftArrowAdder" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="app.cw.f.listingExObjects(-1)" class="arrow-button an-l-arr"></button>
+					<div style="height: 100px;"><object id="exobj" class="obj" type="image/svg+xml">Ваш браузер не поддерживает SVG</object></div>
+					<button id="rightArrowAdder" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="app.cw.f.listingExObjects(1)"></button>
+				</div>
+			</div>
+			<div id="creater" style="display: none">
+				<div class="cw-block">
+					<button class="form" style="position: absolute;top: 0px;" onclick="app.cw.f.turnBack('creater');" title="Переключиться на уже существующие объекты">&lt;</button>
+					<button id="leftArrowCreater" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="app.cw.f.listingObjects(-1)" class="arrow-button an-l-arr"></button>
+					<div style="height: 100px;"><object id="obj" class="obj" type="image/svg+xml">Ваш браузер не поддерживает SVG</object></div>
+					<button id="rightArrowCreater" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="app.cw.f.listingObjects(1)"></button>
+				</div>
+				<div id="colors"></div>
+			</div>
+			<div id="c">
+				x: <input id="x" class="form" style="width: 25px;margin: 3px 6px 3px 3px;">
+				y: <input id="y" class="form" style="width: 25px; margin: 3px">
+				<div style="display: inline-block;position: relative;top: 5px;">
+					<span class="lower-text">x ∈ [-10; 160]<br>y ∈ [-5; 30]</span>
+				</div>
+			</div>
+			<div id="q">
+				<input id="size" class="form" style="width: 20px;margin: 3px;">
+				<span class="lower-text">Коэффициент увеличения</span>
+			</div>
+			<div id="e">
+				<input id="z" class="form" style="width: 20px;margin: 3px;">
+				<span class="lower-text">z-координата, z ∈ (0; 120)</span>
+			</div>
+			<div class="ul">
+				<button class="form" onclick="app.cw.f.addObj();" style="width:100%">Добавить</button>
+			</div>
+		</div>
+		<div class="cw-part-of-setting">
+			<h2>Другое</h2>
+			<div class="ul">Название локации<br><input id="nameOfLoc" class="form" style="width:100%;padding-left: 3px"></div>
+			<div class="ul">
+				Добавить недоступную зону
+				<div>
+					<input id="stop" class="form" style="width: 80%; margin: 3px;font-size: 7pt;" value="161 0000000000000000000000000000000">
+					<span class="form" style="padding:1px" onclick="
+						if (+this.innerHTML) document.getElementById('stop').value = '161 0000000000000000000000000000000'
+						else document.getElementById('stop').value = '161 1111111111111111111111111111111';
+						this.innerHTML = +this.innerHTML ? 0 : 1;
+					">0</span>
+					<button class="form" onclick="app.cw.f.addDisallow();">Добавить</button>
+				</div>
+    
+                        </div>
+			<div class="ul">
+				Добавить путь
+				<div>
+					<input id="minmax" class="form" style="width: 55%; margin: 3px;">
+					<input id="move" class="form" style="width: 55%; margin: 3px;">
+					<div><button class="form" onclick="app.cw.f.addPath();">Добавить</button></div>
+
+				</div>
+			</div>
+			<div class="ul">
+				Текстура поля<br>
+				<button id="leftArrowTex" class="arrow-button1 an-l-arr" style="background: url(&quot;css/img/lowlightarrow.svg&quot;) no-repeat; right: 0px;" onclick="app.cw.f.listingTextures(-1)"></button>
+				<span id="hereTypeName" class="lower-text">лес</span>
+				<button id="rightArrowTex" class="arrow-button1 an-r-arr" style="background: url(&quot;css/img/lowarrow.svg&quot;) no-repeat; transform: scale(-1); left: 0px;" onclick="app.cw.f.listingTextures(1)"></button>
+			</div>
+		</div>
+	</div>
+	<div style="text-align: center; margin: 10px;">
+		<button class="form" style="font-size: 15pt;" onclick="app.cw.f.createLoc();">Создать</button>
+	</div>
+	<div id="viewer">
+		<div  style="height: 5%"></div>
+		<div id="sky" style="height: 50%; width: 100%; background: #97c0d9"></div>
+		<div id="nearloc" style="height: 10%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;); opacity: 0.7"></div>
+		<div id="headloc" style="position: relative;height: 30%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;);"></div>
+	</div>
+	<div class="cw-setting">
+		<div id="addedObj" class="cw-add">
+			<p>Добавленные объекты</p>
+		</div>
+		<div id="addedPaths" class="cw-add">
+			<p>Добавленные пути</p>
+		</div>
+		<div id="addedStops" class="cw-add">
+			<p>Добавленные недоступные зоны</p>
+		</div>
+	</div>
+</div>
+<div id="editExsisLocation" style="display: none;text-align: center;">
+        <div class="cw-setting">
+                <div class="cw-part-of-setting">
+                        <div class="ul">
+                                Добавить путь в локацию под номером <input id="editedLoc" class="form" style="width: 30px; margin: 3px;">
+                                <div>
+                                        <input id="editedminmax" class="form" style="width: 55%; margin: 3px;">
+                                        <input id="editedmove" class="form" style="width: 55%; margin: 3px;">
+                                        <div><button class="form" onclick="app.cw.f.editedaddPath();">Добавить</button></div>
+                                </div>
+                        </div>
+                </div>
+        </div>
+</div>
+</div>

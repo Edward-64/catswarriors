@@ -7,27 +7,18 @@ oldWindow = {
 	minHeight: 360,
 },
 app = {
-//	preloaders: { cch: null },
-//	next: {
-//		tex: {v: 0}, obj: {v: 0}, exObj: {v: 0}, loc: {v: 0},
-//		wht: {v: 0}, patt: {v: 0},
-//	},
-//	cch: {
-//		changeWool: null, preload: null, rgbToHsl: null, hslToRgb: null, nextPattern: null,
-//		contrastPattern: null,
-//	},
 	//max - максимум элементов для перебора
 	//next - ссылка на итерируемое/декремируемое значение
 	//func - то, что надо сделать после анимации
-	animationArrows(la, ra, plus, next, max, func) {
+	animationArrows(la, ra, plus, next, max, func, low = '') {
 		let a = false;
 
 		next.v = (next.v += plus) < 0 ? (a = true, 0) : max < next.v ? (a = true, max) : next.v;
 
-		if (next.v == 0) { la.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
-		else la.style.background = `url('css/img/arrow.svg') no-repeat`;
-		if (next.v == max) { ra.style.background = `url('css/img/lightarrow.svg') no-repeat`; }
-		else ra.style.background = `url('css/img/arrow.svg') no-repeat`;
+		if (next.v == 0) { la.style.background = `url('css/img/${low}lightarrow.svg') no-repeat`; }
+		else la.style.background = `url('css/img/${low}arrow.svg') no-repeat`;
+		if (next.v == max) { ra.style.background = `url('css/img/${low}lightarrow.svg') no-repeat`; }
+		else ra.style.background = `url('css/img/${low}arrow.svg') no-repeat`;
 		if (plus < 0) { la.style.right = '5px'; setTimeout(() => { la.style.right = '0px' }, 500); }
 		if (plus > 0) { ra.style.left = '5px'; setTimeout(() => { ra.style.left = '0px' }, 500); }
 
@@ -186,8 +177,7 @@ function sendRequire() {
 					} else if (res.res == 2) {
 						windowErr.style.display = 'block';
 						windowErr.innerHTML = `<span class='lower-text'>У Вас уже есть персонаж по имени ${res.catName}. ` +
-						`Создание сразу двух и более персонажей запрещено, поэтому, если продолжите попытки создания нового персонажа, ${res.catName} ` +
-						`будет заблокирован и нового создать Вы не сможете. Чтобы создать нового персонажа, нужно удалить старого.</span>`;
+						`Создание сразу двух и более персонажей запрещено. Чтобы создать нового персонажа, нужно удалить старого.</span>`;
 					} else if (res.res == 1) {
 						resizeWindow(0, -80);
 						windowReq.innerHTML = res.data;
@@ -230,9 +220,9 @@ function sendRequire() {
 				document.getElementById('require').innerHTML = res.data;
 				resizeWindow(res.add[0], res.add[1]);
 				if (res.add[2]) {
-					let scr = document.createElement('script');
-					scr.setAttribute('src', res.add[2]);
-					document.body.appendChild(scr);
+					const script = document.createElement('script');
+					script.src =  res.add[2];
+					document.body.appendChild(script);
 				}
 			} else if (res.res == 2) {
 				windowErr.style.display = 'block';
@@ -278,7 +268,7 @@ function addQue(text, where) {
 		events.childNodes[1].style.display = 'none';
 	};
 }
-
+/*
 let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObjects, applyColors, createLoc,
 	applySizeXY, preloadCW, orientCW, listingLocs, addPath, renameLoc, addDisallow, listingTextures,
 	showCreater, showAdder, listingExObjects, turnBack, createNewLocationNoCreater;
@@ -571,14 +561,14 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		newobjadd.style.height = '20px';
 		shellNewObj.style.display = 'inline-block';
 		shellNewObj.appendChild(newobjadd);
-/*		b.classList.add('form');
+		b.classList.add('form');
 		b.style.marginRight = '3px';
 		b.textContent = 'редактировать';
 		b.onclick = () => {
 			//редактируем
 		}
 		shellNewObj.appendChild(b);
-		b = document.createElement('button'); */
+		b = document.createElement('button');
 		b.classList.add('form');
 		b.textContent = 'удалить';
 		b.onclick = () => {
@@ -721,6 +711,7 @@ let	createNewLocation, editExsisLocation, changeSVG, generateColors, listingObje
 		}
 	}
 }
+*/
 
 /* thanks https://gist.github.com/mjackson/5311256 
 

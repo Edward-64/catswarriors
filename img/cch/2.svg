@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80">
+    <defs>
+        <linearGradient id="a">
+            <stop style="stop-color:#000000;stop-opacity:1" offset="0"/>
+            <stop style="stop-color:#000000;stop-opacity:0" offset="1"/>
+        </linearGradient>
+    </defs>
+    <rect style="fill:#a41c0a;fill-opacity:1;stroke:none;stroke-width:1.91273248;stroke-opacity:1" width="158.57" height="26.428" x="-11.515" y="-13.905" rx="7.229" transform="matrix(.76523 .64376 -.54436 .83885 0 0)"/>
+</svg>

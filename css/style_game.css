@@ -14,34 +14,46 @@ body {
 	position: relative;
 }
 
-#mouselistener {
-	height: 100%;
-	width: 100%;
-	position: absolute;
-	z-index: 150;
-}
-
 #meowing {
-	height: 100%;
-	bottom: -5px;
 	position: relative;
 	z-index: 120;
+	min-height: 80%;
 }
 
 #iteractions {
-	height: 100%;
-	width: 250px;
-	z-index: 120;
-	margin-right: 5px;
 	display: none;
 	position: relative;
-	bottom: -5px;
+	z-index: 120;
+	min-height: 80%;
+}
+
+#othersActions {
+	position: relative;
+	z-index: 120;
+	min-height: 80%;
 }
 
 .cat {
 	position: absolute;
 	bottom: 0px;
 	left: 0px;
+}
+
+.part-of-lowpanel {
+	display: inline-block;
+	text-align: center;
+	vertical-align: top;
+	height: 100%;
+	overflow-x: auto;
+	position: relative;
+	top: -10px;
+}
+
+.part-of-actions {
+/*	width: 50px;
+	height: 50px; */
+	display: inline-block;
+	margin: 0 5px;
 }
 
 .msg-on-cat-to-right {
@@ -51,6 +63,7 @@ body {
 
 .msg-on-cat {
 	margin-top: 3px;
+	text-align: center;
 }
 
 .style-of-game {
@@ -67,27 +80,27 @@ body {
 	left: 5px;
 	display: none;
 }
-
+/*
 .action-window {
 	position: absolute;
 	bottom: 0px;
 	right: 40px;
 	width: 150px;
 	display: none;
-}
+} */
 
 .hight-action-window {
 	position: absolute;
-	margin: 10% 30%;
-	width: 40%;
+	margin: 10% 40%;
+	min-width: 20%;
 	z-index: 300;
 	display: none;
 }
 
 .lowpanel {
-	display: flex;
+	/*display: flex;
 	justify-content: center;
-	align-items: flex-end;
+	align-items: flex-end;*/
 	border-top: 2px solid #0f0905;
-	height: 10%
+	height: 15%;
 }

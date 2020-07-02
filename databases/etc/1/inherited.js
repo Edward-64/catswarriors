@@ -1,0 +1,1 @@
+{"patterns":{"0":1},"colors":{"1":1},"white":false}

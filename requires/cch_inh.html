@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+        <title>Котики</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+        <div id="container">
+                <div id="lower-cover">
+                        <div id="cover">
+                                <div id="require">
+<button class="back-button" type="button" onclick="window.location='/';">Вернуться назад</button>
+<div id="preload"><img src="/img/preloader.svg"></div>
+<div id="content" style="display: none;">
+	<div style="width: 49%;">
+		<h2>Создание персонажа</h2>
+		<div class="as-form">Вы не можете использовать те элементы окраса, которые не были наследованы от родителей</div>
+		<div class="as-form">
+			<div class="field-cch">
+				<div class="part-of-field-start-cch">Цвет шерсти</div>
+				<div id="colors" class="part-of-field-end-cch">
+					<div class="color-cch" data-color="0" style="background: #7691a0" onclick="app.cch.funcs.changeWool(0);" title="Индиго"></div>
+					<div class="color-cch" data-color="4" style="background: #808080" onclick="app.cch.funcs.changeWool(4);" title="Голубой (''серый'')"></div>
+					<div class="color-cch" data-color="1" style="background: #6d514d" onclick="app.cch.funcs.changeWool(1);" title="Бурый"></div>
+					<div class="color-cch" data-color="2" style="background: #a64f3b" onclick="app.cch.funcs.changeWool(2);" title="Корица"></div>
+					<div class="color-cch" data-color="3" style="background: #eb9e5c" onclick="app.cch.funcs.changeWool(3);" title="Абрикосовый"></div>
+				</div>
+	  		</div>
+			<div class="field-cch">
+				<div class="part-of-field-start-cch">Яркость шерсти</div>
+				<div class="part-of-field-end-cch">
+					<input id="wool" type="range" min="0" max="255" style="width: 98%;" onchange="app.cch.funcs.contrastWool(this.valueAsNumber);">
+				</div>
+			</div>
+		</div>
+		<div class="as-form">
+				<div class="field-cch">
+				<div class="part-of-field-start-cch">Рисунок на шерсти</div>
+				<div class="part-of-field-end-cch" style="align-items: center;">
+					<button id="pattArrowL" class="arrow-button an-r-arr" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="app.cch.funcs.nextPattern(-1)"></button>
+					<img style="position: absolute; display:none;" id="disallowedPattern" src="/img/cch/1.svg">
+					<img id="patterns" src="/img/cch/patt/0.svg">
+					<button id="pattArrowR" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="app.cch.funcs.nextPattern(1)"></button>
+				</div>
+			</div>
+			<div class="field-cch">
+				<div class="part-of-field-start-cch">Яркость рисунка</div>
+				<div class="part-of-field-end-cch">
+					<input id="pattern" type="range" min="16" max="100" style="width: 98%;" onchange="app.cch.funcs.contrastPattern(this.valueAsNumber);">
+				</div>
+			</div>
+		</div>
+		<div id="white" class="as-form">
+			<div class="field-cch">
+				<div class="part-of-field-start-cch">
+					<span>Бесцветные зоны</span>
+					<span id="added" class="lower-text"></span>
+				</div>
+				<div class="part-of-field-end-cch" style="align-items: center;">
+					<button id="whtArrowL" class="arrow-button an-r-arr" style="background: url('/css/img/lightarrow.svg') no-repeat;" onclick="app.cch.funcs.nextWhite(-1)"></button>
+					<img id="whities" src="/img/cch/wht/0.svg">
+					<button id="whtArrowR" class="arrow-button an-r-arr" style="background: url('/css/img/arrow.svg') no-repeat; transform: scale(-1)" onclick="app.cch.funcs.nextWhite(1)"></button>
+				</div>
+			</div>
+			<div class="field-cch">
+				<div class="part-of-field-start-cch"></div>
+				<div class="part-of-field-end-cch">
+					<button class="form" style="font-size: 12pt;padding: 2px;cursor: pointer;" onclick="app.cch.funcs.addWhite();">Добавить</button>
+				</div>
+			</div>
+		</div>
+		<div class="as-form">
+			<div class="field-cch">
+				<div class="part-of-field-start-cch">Цвет глаз</div>
+				<div class="part-of-field-end-cch">
+					<div class="color-cch" style="background: #3cc1e0" onclick="app.cch.funcs.changeEyes(5);" title="Голубой"></div>
+					<div class="color-cch" style="background: #37845e" onclick="app.cch.funcs.changeEyes(0);" title="Зелёный"></div>
+					<div class="color-cch" style="background: #98bb61" onclick="app.cch.funcs.changeEyes(1);" title="Оливковый"></div>
+					<div class="color-cch" style="background: #e0d13e" onclick="app.cch.funcs.changeEyes(2);" title="Желтый"></div>
+					<div class="color-cch" style="background: #fa9d0c" onclick="app.cch.funcs.changeEyes(3);" title="Янтарный"></div>
+					<div class="color-cch" style="background: #9c4f2c" onclick="app.cch.funcs.changeEyes(4);" title="Медный"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="cch-viewer">
+		<object id="obj" data="/img/cch/0.svg" width="360" height="280">Не удалось загрузить SVG изображение</object>
+		<button class="form" style="font-size;font-size: 15pt;" onclick="app.cch.funcs.saveCharacter();">Играть!</button>
+		<div id="error" class="form" style="display:none;padding: 3px;">Персонаж не создан</div>
+	</div>
+</div>
+</div>
+                        </div>
+                </div>
+        <div class="xrenovyi-iz-menya-verstalshik">
+                <div class="xrenovyi-iz-menya-verstalshik2">
+                        <span class="lower-text" style="margin-right: 5px">Разработано с помощью</span>
+                        <img height="20" width="31" src="https://nodejs.org/static/images/logo.svg" style="background: #26180c; border-rader-radius: 3px;">
+                </div>
+        </div>
+<script src="js/handlerRequires.js"></script>
+<script src="js/cch_inh.js"></script>
+</body>
+</html>
