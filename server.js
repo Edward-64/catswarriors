@@ -525,7 +525,7 @@ function forStartServer(err) {
 }
 } catch (err) {
 	validator.log('внутри .server()' + err);
-}}).listen(process.env.PORT || 8080, () => console.log('Server is running'));
+}}).listen(process.env.PORT || 80, () => console.log('Server is running on', process.env.PORT || 80));
 
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
@@ -537,7 +537,7 @@ setInterval(() => {
 			 wsSend(14, 'inloc', [x.loc, {pn: x.pn, s: 'doze'}]);
 		}
 	});
-}, 3000);
+}, 60000);
 
 wss.on('connection', ws => {
 	let	pn = null, cat = [null, null], control = null;
