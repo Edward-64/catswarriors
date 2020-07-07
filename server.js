@@ -644,14 +644,14 @@ wss.on('connection', ws => {
 								});
 								wsSend(8, 'inloc', [cat[1].lastPlace[3], pn]);
 								cat[1].lastPlace = moving;
-								p = findClient(pn);
-								if (p >= 0) {
+								p = clients.findIndex(i => i.pn == pn);
+								if (p != -1) {
 									clients[p].loc = cat[1].lastPlace[3];
 									if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
 									locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
 									wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
 									wsSend(3, 'one', {del: true, loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
-								} else ws.close();
+								}
 							}
 
 						}, i);
@@ -679,7 +679,8 @@ wss.on('connection', ws => {
 							if (db.cache[msg.pn]) db.cache[msg.pn].lastUpdate = Date.now()
 							else editDBs.getSyncCat(msg.pn);
 
-							if (Date.now() - db.cache[msg.pn].game.last > 18 * 60000) wsSend(12, 'one', {add: {pn: msg.pn}, msg: '%catname спит. Не беспокой его.'}, ws)
+							if (Date.now() - db.cache[msg.pn].game.last > 18 * 60000)
+								wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname спит. Не беспокой ${db.cache[msg.pn].game.public.gender ? 'его' : 'её'}.`}, ws)
 							else {
 								if (cat[0].cantSendRelation.some(x => x == msg.pn)) {
 									wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname пока что не ответил${db.cache[msg.pn].game.public.gender ? '' : 'a'}` +
@@ -707,8 +708,20 @@ wss.on('connection', ws => {
 							return true;
 						}
 					})) {
+						const c = clients.findIndex(i => i.pn == msg.to);
 						db.cache[msg.to].game.cantSendRelation.splice(db.cache[msg.to].game.cantSendRelation.indexOf(pn), 1);
-						if (!msg.about) { wsSend(12, 'one', {add: {pn}, msg: '%catname не хочет рассказывать о себе'}, clients[findClient(msg.to)].ws); break; }
+
+						if (Date.now() - db.cache[msg.to].game.last > 18 * 60000 || c == -1) {
+							wsSend(12, 'one', {add: {pn: msg.to}, msg: `%catname спит, поэтому не услышал${db.cache[msg.to].game.public.gender ? '' : 'a'}` +
+							` от тебя ответа. Не беспокой ${db.cache[msg.to].game.public.gender ? 'его' : 'её'}.`}, ws);
+							break;
+						} if (db.cache[msg.to].game.public.lastPlace[3] != cat[1].lastPlace[3]) {
+							wsSend(12, 'one', {add: {pn: msg.to}, msg: '%catname не рядом с тобой.'}, ws); break;
+						}
+
+						if (!msg.about) {
+							wsSend(12, 'one', {add: {pn}, msg: '%catname не хочет рассказывать о себе'}, clients[c].ws); break;
+						}
 						const sendedData = {};
 						msg.about = Object.keys(msg.about).reduce((a, x) => {
 							if (msg.about[x].value) { a[x] = msg.about[x]; return a; }
@@ -716,7 +729,7 @@ wss.on('connection', ws => {
 						}, {});
 						if (Object.keys(msg.about).length == 0){
 							wsSend(12, 'one', {add: {pn}, msg: '%catname не хочет рассказывать о себе'},
-							clients[findClient(msg.to)].ws); break;
+							clients[с].ws); break;
 						}
 						Object.keys(msg.about).forEach(x => {
 							sendedData[msg.about[x].i] = {};
@@ -728,13 +741,14 @@ wss.on('connection', ws => {
 									k.item = 'Племя или группа: '; k.value = msg.about[x].value; break;
 							}
 						});
-						wsSend(11, 'one', {pn, sendedData}, clients[findClient(msg.to)].ws);
+						wsSend(11, 'one', {pn, sendedData}, clients[c].ws);
 					} break;
 				} case 109:
 					if (!validator.msg(pn, cat, 109, msg)) {ws.close(); break;}
 					editDBs.getDB('knowledge.js', (err, data) => {
 						if (err) { wsSend(7, 'one', `Ошибка!`, ws); return; }
 						if (Object.keys(data.knownPlayers).length > 100) { wsSend(7, 'one', 'Вы не можете помнить больше ста котиков'); return; }
+						if (!data.knownPlayers[msg.pn]) data.knownPlayers[msg.pn] = {};
 						for (let p in msg.data) {
 							if (!msg.data.hasOwnProperty(p)) continue;
 							data.knownPlayers[msg.pn][p] = msg.data[p];

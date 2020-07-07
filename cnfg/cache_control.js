@@ -23,7 +23,7 @@ function cacheControl(req, res, path) {
 		},
 		['/js/play.js']: {
 			include: true,
-			etag: '0.0.1',
+			etag: '0.0.2',
 			age: 86400
 		},
 		['/js/']: {

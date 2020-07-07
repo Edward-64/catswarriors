@@ -435,6 +435,7 @@ ws.onmessage = (e) => {
 
 				app.simpleNextWindow(data.pn, [buffer, 'Запомнить', 'Не запоминать',
 					() => {
+						app.known[data.pn] = {};
                                     for (let p in data.sendedData) {
                                           if (!data.sendedData.hasOwnProperty(p)) continue;
                                           app.known[data.pn][p] = data.sendedData[p];
