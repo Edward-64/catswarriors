@@ -15,6 +15,7 @@ const http = require('http'),
 		['одиночка']: [[6, 1]],
 		['домашний котик']: [[6, 1]],
 	};
+
 /*
 editDBs.changeEveryCat(cat => {
 	try {
@@ -33,6 +34,8 @@ setInterval(() => {
 setInterval(() => {
 	editDBs.save('other');
 }, 1800000);
+
+const cacheControl = require('./cnfg/cache_control.js');
 
 function createCharacter(rawData, req, res) {
 	try {
@@ -263,7 +266,7 @@ function parseAnotherRequest(require, res, req, pn) {
 			else afterCheckCookie(res, {res: 2}); //нет прав
 		} else afterCheckCookie(res, {res: 0}); //персонаж не активирован
 	} else if (require === 'q' || /творить мир/.test(require)) {
-		if (/creater/.test(p)) getStaticFile(res, '/requires/cw.html', [-350, -280, '/js/cw.js'])
+		if (/creater/.test(p)) getStaticFile(res, '/requires/cw.html', [-300, -280, '/js/cw.js'])
 		else getStaticFile(res, '/requires/cw_no_creater.html', [200, 0, 'js/cw_no_creater.js']);
 	} else if (/эксп[еи]{1}р[еи]{1}мент.*(окрас|персонаж).*/.test(require)) {
 		getStaticFile(res, '/requires/creating_character.html', [200, 0, '/js/cch.js']);
@@ -307,28 +310,31 @@ function forStartServer(err) {
 		db.cache[c].lastVisitOfSite = Date.now();
 	}
 
+	const ccache = cacheControl(req, res, path);
+
 	if (req.method === 'GET') {
 		switch(path) {
 			case '/':
-				getStaticFile(res, '/index.html', null, 'text/html'); break;
+				if (c == 0) getStaticFile(res, '/index_first_look.html', null, 'text/html')
+				else getStaticFile(res, '/index.html', null, 'text/html'); break;
 			case '/favicon.ico':
 				getStaticFile(res, '/favicon.ico', null, 'image/vnd.microsoft.icon'); break;
 			case '/css/style.css':
-				getStaticFile(res, '/css/style.css', null, 'text/css'); break;
+				if (ccache) break; getStaticFile(res, '/css/style.css', null, 'text/css'); break;
 			case '/css/styleGame.css':
-				getStaticFile(res, '/css/style_game.css', null, 'text/css'); break;
+				if (ccache) break; getStaticFile(res, '/css/style_game.css', null, 'text/css'); break;
 			case '/js/handlerRequires.js':
-				getStaticFile(res, '/js/handler_requires.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/handler_requires.js', null, 'application/javascript'); break;
 			case '/js/play.js':
-				getStaticFile(res, '/js/play.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/play.js', null, 'application/javascript');  break;
 			case '/js/cch.js':
-				getStaticFile(res, '/js/cch.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/cch.js', null, 'application/javascript'); break;
 			case '/js/cch_inh.js':
-				getStaticFile(res, '/js/cch_inh.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/cch_inh.js', null, 'application/javascript'); break;
 			case '/js/cw.js':
-				getStaticFile(res, '/js/cw.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/cw.js', null, 'application/javascript'); break;
 			case '/js/cw_no_creater.js':
-				getStaticFile(res, '/js/cw_no_creater.js', null, 'application/javascript'); break;
+				if (ccache) break; getStaticFile(res, '/js/cw_no_creater.js', null, 'application/javascript'); break;
 			case '/play':
 				if (c > 0) {
 					if (db.cache[c].tmp.dontChooseCharacter) {
@@ -390,8 +396,8 @@ function forStartServer(err) {
 						}
 						getStaticFile(res, '/requires/cch_inh.html', null, 'text/html');
 					} else {
-						res.setHeader('set-cookie', [`timeauth=${db.cache[c].cookie};max-age=20`,
-										     `timealias=${encodeURI(db.cache[c].alias)};max-age=20`]);
+						res.setHeader('set-cookie', [`timeauth=${db.cache[c].cookie};max-age=60;SameSite=lax`,
+										     `timealias=${encodeURI(db.cache[c].alias)};max-age=60;SameSite=lax`]);
 						getStaticFile(res, '/play.html', null, 'text/html');
 					}
 				}
@@ -446,43 +452,47 @@ function forStartServer(err) {
 						else sendJSON(res, { res: 1, data });
 					}, c);
 				} break;
+			case '/img/':
+				if (ccache) break; getStaticFile(res, `/img/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/':
-				getStaticFile(res, `/img/cch/${n}.svg`, null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, `/img/cch/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/patt/':
-				getStaticFile(res, `/img/cch/patt/${n}.svg`, null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, `/img/cch/patt/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/wht/':
-				getStaticFile(res, `/img/cch/wht/${n}.svg`, null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, `/img/cch/wht/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/textures/':
-				getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
+				if (ccache) break;
 				if (!n) { error404(res); break; }
 				if (n.length == 1) getStaticFile(res, `/img/details/${n[0]}.svg`, null, 'image/svg+xml')
 				else if (n.length == 2) getStaticFile(res, `/img/details/${n[0]}/${n[1]}.svg`, null, 'image/svg+xml'); break;
 			case '/img/players/':
+				if (ccache) break;
 				if (n) getStaticFile(res, `/img/players/${n[0]}.svg`, null, 'image/svg+xml')
 				else error404(res); break;
 			case '/css/img/button.png':
-				getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/button.png', null, 'image/png'); break;
 			case '/img/indev.svg':
-				getStaticFile(res, '/img/indev.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/img/indev.svg', null, 'image/svg+xml'); break;
 			case '/img/preloader.svg':
-				getStaticFile(res, '/img/preloader.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/img/preloader.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowarrow.svg':
-				getStaticFile(res, '/css/img/lowarrow.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/lowarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowlightarrow.svg':
-				getStaticFile(res, '/css/img/lowlightarrow.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/lowlightarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/arrow.svg':
-				getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/arrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lightarrow.svg':
-				getStaticFile(res, '/css/img/lightarrow.svg', null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/lightarrow.svg', null, 'image/svg+xml'); break;
 			case '/css/img/lowMsg.png':
-				getStaticFile(res, '/css/img/lowMsg.png', null, 'image/png'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/lowMsg.png', null, 'image/png'); break;
 			case '/css/img/line.png':
-				getStaticFile(res, '/css/img/line.png', null, 'image/png'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/line.png', null, 'image/png'); break;
 			case '/css/img/verticalLine.png':
-				getStaticFile(res, '/css/img/vertical_line.png', null, 'image/png'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/vertical_line.png', null, 'image/png'); break;
 			case '/css/img/head.jpg':
-				getStaticFile(res, '/css/img/head.jpg', null, 'image/jpg'); break;
+				if (ccache) break; getStaticFile(res, '/css/img/head.jpg', null, 'image/jpg'); break;
 			case '/dac':
 				ch.deleteCookie(res); break;
 			default: error404(res); break;
@@ -521,20 +531,47 @@ const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
 	clients = [];
 
-wss.on('connection', (ws) => {
-	let	pn = null, c = null, cat = [null, null], control = null;
+setInterval(() => {
+	clients.forEach((x, i) => {
+		if (Date.now() - db.cache[x.pn].game.last > 15 * 60000) {
+			 wsSend(14, 'inloc', [x.loc, {pn: x.pn, s: 'doze'}]);
+		}
+	});
+}, 3000);
 
-	ws.on('message', (m) => {
+wss.on('connection', ws => {
+	let	pn = null, cat = [null, null], control = null;
+
+/*
+	let	lastPong = Date.now();
+	const pingpong = setInterval(() => {
+		ws.ping(null, false, () => {
+			if (Date.now() - lastPong > 10000) {
+				ws.close(); close();
+				clearInterval(pingpong);
+			}
+			console.log('sended ping ', Date.now() - lastPong);
+		});
+	}, 3000)
+
+	ws.on('pong', () => {
+		lastPong = Date.now();
+		console.log('got pong');
+	});
+*/
+	ws.on('message', m => {
 		try {
 	      	let {type, msg} = JSON.parse(m);
+			if (pn) db.cache[pn].game.last = Date.now();
 			switch (type) {
 				case 102: {
 					pn = ch.existingCookie(decodeURI(msg.token));
-					c = findClient(pn);
-					if (c == -2) {ws.close(); break;}
+					if (pn <= 0) {ws.close(); break;}
+
+					const c = clients.findIndex(i => i.pn == pn);
 					if (!db.cache[pn]) editDBs.getSyncCat(pn);
-					if (c == -1) clients.push({pn: pn, ws: ws, loc: db.cache[pn].game.public.lastPlace[3]});
-					if (c >= 0) clients[c].ws = ws;
+					if (c != -1) { clients[c].ws.close(4000); clients.splice(c, 1); }
+					clients.push({pn: pn, ws: ws, loc: db.cache[pn].game.public.lastPlace[3]});
 
 					cat[0] = db.cache[pn].game;
 					cat[1] = db.cache[pn].game.public;
@@ -543,9 +580,18 @@ wss.on('connection', (ws) => {
 					if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
 					if (!locs.cache[cat[1].lastPlace[3]].public.fill.some(x => pn == x))
 								locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
-					wsSend(2, 'one', {pn, itr: db.cache[pn].game.iteractions, name: db.cache[pn].catName, clan: db.cache[pn].game.clan}, ws);
-					wsSend(3, 'one', {loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
-					wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);break;
+					editDBs.getDB('knowledge.js', (err, data) => {
+						if (err) wsSend(7, 'one', `Ошибка!`, ws)
+						else {
+							wsSend(2, 'one', {pn, known: data.knownPlayers,
+										itr: db.cache[pn].game.iteractions,
+										name: db.cache[pn].catName,
+										clan: db.cache[pn].game.clan}, ws);
+							wsSend(3, 'one', {loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
+							wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
+							wsSend(14, 'inloc', [cat[1].lastPlace[3], {pn, s: 'go'}]);
+						}
+					}, pn); break;
 				} case 103: {
 					if (!validator.msg(pn, cat, 103, msg)) {ws.close();break;}
 					if (cat[0].block & (1 | 2)) {
@@ -617,12 +663,6 @@ wss.on('connection', (ws) => {
 					msg.value = msg.value.length > 200 ? msg.value.slice(0, 200) + ' ...' : msg.value;
 					wsSend(6, 'inloc', [ cat[1].lastPlace[3], { msg: msg.value, pn, }]);
 					break;
-				} case 107: {
-					if (!validator.msg(pn, cat, 107, msg)) {ws.close(); break;}
-					editDBs.getDB('knowledge.js', (err, data) => {
-						if (err) wsSend(7, 'one', `Ошибка!`, ws)
-						else wsSend(9, 'one', data.knownPlayers, ws);
-					}, pn); break;
 				} case 108: {
 					if (!validator.msg(pn, cat, 108, msg)) {ws.close(); break;}
 					if (cat[0].block & 2) break;
@@ -635,19 +675,32 @@ wss.on('connection', (ws) => {
 								cat[0].block = cat[0].block ^ 1; cat[1].action = msg.i;
 								wsSend(10, 'inloc', [cat[1].lastPlace[3], {pn, i: msg.i}]);
 							} break;
-						case -1:
-							if (cat[0].cantSendRelation.some(x => x == msg.pn)) {
-								wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname пока что не ответил${db.cache[msg.pn].game.public.gender ? '' : 'a'}` +
-								` на прошлое действие`}, ws); break;
+						case -1: {
+							if (db.cache[msg.pn]) db.cache[msg.pn].lastUpdate = Date.now()
+							else editDBs.getSyncCat(msg.pn);
+
+							if (Date.now() - db.cache[msg.pn].game.last > 18 * 60000) wsSend(12, 'one', {add: {pn: msg.pn}, msg: '%catname спит. Не беспокой его.'}, ws)
+							else {
+								if (cat[0].cantSendRelation.some(x => x == msg.pn)) {
+									wsSend(12, 'one', {add: {pn: msg.pn}, msg: `%catname пока что не ответил${db.cache[msg.pn].game.public.gender ? '' : 'a'}` +
+									` на прошлое действие`}, ws); break;
+								}
+								cat[0].isWaitingRelation.push(msg.pn);
+								cat[0].cantSendRelation.push(msg.pn);
+								db.cache[msg.pn].game.iteractions.push({pn, action: 1});
+
+								const c = clients.findIndex(i => i.pn == msg.pn);
+								if (clients[c]) wsSend(10, 'one', {pn, i: msg.i}, clients[c].ws);
 							}
-							cat[0].isWaitingRelation.push(msg.pn);
-							cat[0].cantSendRelation.push(msg.pn);
-							db.cache[msg.pn].game.iteractions.push({pn, action: 1});
-							wsSend(10, 'one', {pn, i: msg.i}, clients[findClient(msg.pn)].ws);
+						}
 					} break;
 				} case 106: {
 					if (!validator.msg(pn, cat, 106, msg)) {ws.close(); break;}
 					cat[0].iteractions.pop();
+
+					if (db.cache[msg.to]) db.cache[msg.to].lastUpdate = Date.now()
+					else editDBs.getSyncCat(msg.to);
+
 					if (db.cache[msg.to].game.isWaitingRelation.some((x, i) => {
 						if (x == pn) {
 							db.cache[msg.to].game.isWaitingRelation.splice(i, 1);
@@ -677,7 +730,7 @@ wss.on('connection', (ws) => {
 						});
 						wsSend(11, 'one', {pn, sendedData}, clients[findClient(msg.to)].ws);
 					} break;
-				} case 109: {
+				} case 109:
 					if (!validator.msg(pn, cat, 109, msg)) {ws.close(); break;}
 					editDBs.getDB('knowledge.js', (err, data) => {
 						if (err) { wsSend(7, 'one', `Ошибка!`, ws); return; }
@@ -690,13 +743,21 @@ wss.on('connection', (ws) => {
 							if (err) wsSend(7, 'one', `Ошибка`, ws);
 						}, pn);
 					}, pn);
-				}
+				  case 105:
+					if (!cat[1]) {ws.close(); break;}
+					wsSend(14, 'inloc', [cat[1].lastPlace[3], {pn, s: 'go'}]); break;
 			}
 		} catch (err) {
 			validator.log(err);
 		}
 	});
-	ws.on('close', () => {
+	ws.on('close', reason => {
+		if (reason == 4000) return;
+		if (!pn || !cat[0] || !cat[1]) return;
+		cat[0].last -= 15 * 60000;
+		wsSend(14, 'inloc', [cat[1].lastPlace[3], {pn, s: 'doze'}]);
+		cat[0].block = cat[0].block & 1;
+		clients.splice(clients.findIndex(i => i.pn == pn), 1);
 		console.log('Сокет закрылся');
 	});
 });
@@ -766,7 +827,7 @@ function serveBeforeSend(pn, update) {
 
 	if (!db.cache[pn]) editDBs.getSyncCat(pn);
 	if (Date.now() - db.cache[pn].game.last < 15 * 60000) t = 'go'
-	else if (Date.now() - db.cache[pn].game.last < 20 * 60000) t = 'doze'
+	else if (Date.now() - db.cache[pn].game.last < 18 * 60000) t = 'doze'
 	else t = 'sleep';
 
 	if (m <= 12) size += m / 12 * 0.5

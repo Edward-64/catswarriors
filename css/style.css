@@ -265,3 +265,28 @@ body {
 	align-items: center;
 	flex-direction: column;
 }
+
+.hello {
+	display: inline-block;
+	width: 180px;
+	position: absolute;
+	right: 30px;
+	top: 30px;
+	text-align: right;
+}
+
+.link:link {
+	color: #371c07;
+}
+
+.link:visited {
+	color: #382312;
+}
+
+.link:hover {
+	color: #382312;
+}
+
+.link:active {
+	color: #382312;
+}

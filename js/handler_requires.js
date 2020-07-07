@@ -145,7 +145,7 @@ function activCharacter() {
 			form.password.onclick = () => { document.getElementById('alias').style.display = 'none' }
 		} else if (res == 1) {
 			winErr.innerHTML = 'Персонаж активирован!';
-			setTimeout(()=> { backRequire() }, 3000);
+			setTimeout(()=> { window.location='/'; }, 3000);
 		}
 	}
 }

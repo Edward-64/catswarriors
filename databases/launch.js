@@ -40,14 +40,20 @@ class EditDBs extends require('events').EventEmitter {
 				func(err, null);
 			} else {
 				data = JSON.parse(data);
-				if (!cache) db.cache[pn] = data;
+				if (!cache) {
+					db.cache[pn] = data;
+					db.cache[pn].lastUpdate = Date.now();
+				}
 				func(err, data);
 			}
 		});
 	}
 	getSyncCat(pn, cache) {
 		const data = JSON.parse(fs.readFileSync(__dirname + `/cats/${pn}.js`, 'utf-8'));
-		if (!cache) db.cache[pn] = data;
+		if (!cache) {
+			db.cache[pn] = data;
+			db.cache[pn].lastUpdate = Date.now();
+		}
 		return data;
 	}
 	setCat(pn, data, func) {
@@ -61,10 +67,6 @@ class EditDBs extends require('events').EventEmitter {
 	changeEveryCat(func) {
 		let error = '';
 		for (let i = 1; i <= db.totalCats; i++) {
-			if (error) {
-				validator.log('Пройдено итераций: ', i, '\nОшибка: ' + error);
-				this.emit('changeEveryCat', error); break;
-			}
 			this.getCat(i, (err, data) => {
 				if (err) return error += err
 				else {
@@ -76,6 +78,10 @@ class EditDBs extends require('events').EventEmitter {
 					});
 				}
 			});
+			if (error) {
+				validator.log('Пройдено итераций: ', i, '\nОшибка: ' + error);
+				this.emit('changeEveryCat', error); break;
+			}
 		}
 	}
 

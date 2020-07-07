@@ -14,18 +14,10 @@ const	details = document.getElementById('details'),
 		info: document.getElementById('info'),
 		next: document.forms.next,
 		itActWin: document.getElementById('iteractions'),
-		getKnown(pn) {
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(JSON.stringify({ type: 107 }));
-			};
-		},
 		fillInfoAsCat(pn) {
 			this.info.innerHTML = '';
 			this.info.style.display = 'block';
-			if (!this.known) {
-				this.getKnown(pn);
-				this.info.style.display = 'none';
-			} else if (pn == PN) {
+			if (pn == PN) {
 				this.info.innerHTML = 'Это я';
 			} else if (!this.known[pn]) {
 				this.info.innerHTML = 'Я не знаю этого котика... Или не помню.';
@@ -157,14 +149,13 @@ const	details = document.getElementById('details'),
 			});
 		},
 		actionsWith(pn) {
-			if (!this.known) { this.getKnown(pn); return; }
 			const msg = this.known[pn] && this.known[pn][0] ? `Взаимодействовать c ${CATS[pn].gender ? 'котом' : 'кошкой'}` +
 			` по имени ${this.known[pn][0].value}` : 'Взаимодействовать c неизвестным котиком';
 			if (!document.getElementById('with')) {
 				const b = document.createElement('div');
 				b.classList.add('style-of-game'); b.classList.add('part-of-actions'); //b.classList.add('lower-text');
 				b.title = msg;
-				b.id = 'with'; b.innerHTML = '<img src="/img/cch/patt/0.svg" width="40" height="40">';
+				b.id = 'with'; b.innerHTML = '<img src="/img/2.svg" width="40" height="40">';
 				document.getElementById('actions').appendChild(b);
 			}
 			document.getElementById('with').onclick = () => {
@@ -253,29 +244,6 @@ window.onresize = () => {
 	x = Math.floor(headloc.clientWidth / 160);
 	y = Math.floor(headloc.clientHeight / 30);
 }
-/*
-let counter = 0;
-function reconnect() {
-	console.log('пытаюсь проснуться...');
-	counter += 10000;
-	if (counter > 60000) {
-		console.log('проснуться не удалось')
-		counter = 0;
-		return;
-	}
-	console.log(ws.readyState);
-	try {
-		ws = new WebSocket(HOST);
-		ws.send(JSON.stringify({type: 102, token: document.cookie}));
-		ws.onclose = () => {
-			setTimeout(reconnect, 10000);
-		}
-	} catch (err) {
-		setTimeout(reconnect, 10000);
-	}
-}
-*/
-
 
 function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 70,
@@ -283,8 +251,8 @@ function addCat(pn, chunk) {
 	if (chunk[2]) { scale = 'scale(1)'; widthCat = 200; }
 
 	div.innerHTML = `<div></div><div style="transform: ${scale}; background: url(${CATS[pn].skin});` +
-	`background-position-x: 0px;width:${220 * CATS[pn].size + 'px'};height:${140 * CATS[pn].size + 'px'}` +
-	`; background-size:1200%;"></div>`;
+	`background-position-x: ${CATS[pn].status === 'go' ? 0 : -440 * CATS[pn].size}px;` +
+	`width:${220 * CATS[pn].size + 'px'};height:${140 * CATS[pn].size + 'px'}; background-size:1200%;"></div>`;
 
 	div.classList.add('cat');
 	div.id = `cat${pn}`;
@@ -292,37 +260,6 @@ function addCat(pn, chunk) {
 	div.style.bottom = `${chunk[1] * y}px`;
 	div.style.zIndex = 100 - chunk[1];
 
-/*	actions.classList.add('style-of-game');
-	actions.classList.add('action-window');
-
-	function forEvent() {
-		actions.style.display = 'none';
-	}
-
-	div.addEventListener('click', () => {
-		actions.innerHTML = '';
-		if (pn == PN) {
-			Object.keys(app.runTheActionMyself).forEach(i => {
-				i = +i; if ((i && app.statusOfAction == i) || app.runTheActionMyself[i].status) return;
-
-				let b = document.createElement('button');
-				b.style.marginBottom = '3px'; b.style.width = '150px';
-				b.classList.add('form'); b.textContent = app.runTheActionMyself[i].name;
-				b.onclick = (e) => {
-					actions.style.display = 'none';
-					if (e.target.tagName != 'BUTTOM') e.stopPropagation();
-					app.send(108, {i});
-					app.statusOfAction = i;
-				}
-
-				actions.appendChild(b);
-			});
-		} else {
-
-		}
-		actions.style.display = 'block';
-	}, {capture:true});
-*/
 	div.addEventListener('mouseover', () => {
 		app.fillInfoAsCat(pn);
 		if (pn != PN) app.actionsWith(pn);
@@ -374,11 +311,9 @@ function changeOrient(pn, o, widthCat) {
 	const cat = document.getElementById(`cat${pn}`); o = +o;
 	if (o) {
 		cat.children[1].style.transform = 'scale(1)';
-//		cat.children[0].style.textAlign = 'right';
 		if (widthCat) return 200 * CATS[pn].size;
 	} else {
 		cat.children[1].style.transform = 'scale(-1, 1)';
-//		cat.children[0].style.textAlign = '';
 		if (widthCat) return 70 * CATS[pn].size;
 	}
 }
@@ -427,6 +362,7 @@ ws.onmessage = (e) => {
 				PN = data.pn; CATS[PN] = {};
 				CATS[PN].name = data.name;
 				CATS[PN].clan = data.clan;
+				app.known = data.known;
 				app.iteractions = data.itr;
 				const l = data.itr.length - 1;
 				if (l >= 0) app.runTheActionWith[data.itr[l].action].doIt(data.itr[l].pn, data.itr[l].data, true, true);
@@ -438,7 +374,6 @@ ws.onmessage = (e) => {
 						if (pn == PN) continue;
 						delete CATS[pn];
 					}
-//					addCat(PN, data.chunk);
 				}
 				let l = data.loc.fill.length;
 				for(let j = 0; j < l; j++) {
@@ -518,18 +453,30 @@ ws.onmessage = (e) => {
 					delete CATS[data];
 				} break;
 			  case 7: app.notification(data); break;
-			  case 9: app.known = data; break;
+			  case 14:
+				if (data.s === 'go') {
+					if (data.pn == PN) document.getElementById('sleeping').style.display = 'none';
+					document.getElementById(`cat${data.pn}`).children[1].style.backgroundPositionX = '0px'
+				} else {
+					if (data.pn == PN) document.getElementById('sleeping').style.display = 'block';
+					document.getElementById(`cat${data.pn}`).children[1].style.backgroundPositionX = -440 * CATS[data.pn].size + 'px';
+				}
 		}
 	}
 }
 
-//document.getElementById('movelistener')
+document.getElementById('sleeping').addEventListener('click', () => {
+	if (ws.readyState === WebSocket.OPEN) {
+		document.getElementById('sleeping').style.display = 'none';
+		app.send(105);
+	} else window.location='/play';
+});
 headloc.addEventListener('mousedown', (e) => {
 	const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight;
 	app.send(103, { value: serveChunk([e.pageX, e.pageY - excess]) });
 });
 
 ws.onclose = () => {
+	document.getElementById('sleeping').style.display = 'block';
 	console.log('соединение закрылось');
-//	reconnect();
 }

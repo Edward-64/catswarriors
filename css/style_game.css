@@ -104,3 +104,16 @@ body {
 	border-top: 2px solid #0f0905;
 	height: 15%;
 }
+
+#sleeping {
+	position: absolute;
+	width: inherit;
+	height: inherit;
+	opacity: 0.8;
+	background: black;
+	top: 0px;
+	z-index: 200;
+	text-align: center;
+	color: saddlebrown;
+	display: none;
+}
