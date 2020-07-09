@@ -6,7 +6,7 @@ function cacheControl(req, res, path) {
 			etag: '0.0.1',
 			age: 604800
 		},
-		['/css/']: {
+/*		['/css/']: {
 			include: true,
 			etag: '0.0.1',
 			age: 86400
@@ -23,14 +23,14 @@ function cacheControl(req, res, path) {
 		},
 		['/js/play.js']: {
 			include: true,
-			etag: '0.0.2',
+			etag: '0.0.3',
 			age: 86400
 		},
 		['/js/']: {
 			include: true,
 			etag: '0.0.1',
 			age: 86400
-		},
+		}, */
 		['/img/']: {
 			include: true,
 			etag: '0.0.1',

@@ -247,11 +247,14 @@ window.onresize = () => {
 
 function addCat(pn, chunk) {
 	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 70,
-		actions = document.createElement('span');
+		actions = '0px';
 	if (chunk[2]) { scale = 'scale(1)'; widthCat = 200; }
 
+	if (CATS[pn].status != 'go') actions = -440 * CATS[pn].size + 'px'
+	else if (CATS[pn].action == 1) actions = -220 * CATS[pn].size + 'px';
+
 	div.innerHTML = `<div></div><div style="transform: ${scale}; background: url(${CATS[pn].skin});` +
-	`background-position-x: ${CATS[pn].status === 'go' ? 0 : -440 * CATS[pn].size}px;` +
+	`background-position-x: ${actions};` +
 	`width:${220 * CATS[pn].size + 'px'};height:${140 * CATS[pn].size + 'px'}; background-size:1200%;"></div>`;
 
 	div.classList.add('cat');
@@ -268,7 +271,6 @@ function addCat(pn, chunk) {
 		app.info.style.display = 'none';
 	});
 
-	div.appendChild(actions);
 	cats.appendChild(div);
 }
 
@@ -382,8 +384,8 @@ ws.onmessage = (e) => {
 					CATS[data.loc.fill[j].pn].listingframes = null;
 					CATS[data.loc.fill[j].pn].steping = null;
 					addCat(data.loc.fill[j].pn, data.loc.fill[j].lastPlace);
-					if (data.loc.fill[j].action > 0) app.runTheActionMyself[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
-					else if (data.loc.fill[j].action < 0) app.runTheActionWith[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
+//					if (data.loc.fill[j].action > 0) app.runTheActionMyself[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
+//					else if (data.loc.fill[j].action < 0) app.runTheActionWith[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
 				}
 				headloc.style.background = `url('${data.loc.surface}')`;
 				app.nearloc.style.background = `url('${data.loc.surface}')`;

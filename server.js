@@ -8,13 +8,15 @@ const http = require('http'),
 	ch = require('./lib/cookie.js').include(db, validator),
 	cw = require('./lib/creating_world.js').include(db, locs, validator, editDBs),
 	queens = {
-		['племя Теней']: [[2, 1]],
-		['племя Ветра']: [[5, 1]],
+		['племя Теней']: [[2, 9]],
+		['племя Ветра']: [[5, 10]],
 		['Речное племя']: [[4, 1]],
-		['Грозовое племя']: [[3, 1]],
-		['одиночка']: [[6, 1]],
-		['домашний котик']: [[6, 1]],
+		['Грозовое племя']: [[3, 8]],
+		['одиночка']: [[6, 11]],
+		['домашний котик']: [[6, 11]],
 	};
+
+let	dontwork = true;
 
 /*
 editDBs.changeEveryCat(cat => {
@@ -155,16 +157,18 @@ function createOC(fromUser, res, pn) {
 			editDBs.getDB('inherited.js', (err, data) => {
 				if (err) sendJSON(res, { res: 0 });
 				else {
-					inh = data;
+					inh = data; console.log(inh ? 'данные о наследовании успешно полчены' : '!!!нет данных о наследовании');
 					if (validator.cch(fromUser, Object.assign({}, inh), cchh, pn)) {
-						cch.createCharacter(pn, fromUser)
+						cch.createCharacter(pn, fromUser); console.log('createCharacter отправлен');
 						cch.once('finishCreateCharacter', (err, path) => {
 							if (err) sendJSON(res, { res: 0 });
 							else {
+								console.log('событие finishCreateCharacter произошло');
 								const forCache = err => {
 									if (err) {sendJSON(res, { res: 0 }); return;}
 									db.cache[pn].game.public.skin = path;
 									delete db.cache[pn].tmp.dontChooseCharacter;
+									console.log(db.cache[pn]);
 									editDBs.setCat(pn, db.cache[pn]);
 									sendJSON(res, { res: 1 });
 								}
@@ -308,6 +312,13 @@ function forStartServer(err) {
 	if (c > 0) {
 		p = db.cache[c].role;
 		db.cache[c].lastVisitOfSite = Date.now();
+	}
+
+	console.log(c);
+	if (dontwork && c != 1 && c != 4) {
+		res.setHeader('content-type', 'text/plain; charset=utf-8');
+		res.end('Сайт временно отключен. Проводятся технические работы. Изувер, я сейчас чиню баги, поиграть не получится(');
+		return;
 	}
 
 	const ccache = cacheControl(req, res, path);
