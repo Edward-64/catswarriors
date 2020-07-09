@@ -16,7 +16,7 @@ const http = require('http'),
 		['домашний котик']: [[6, 11]],
 	};
 
-let	dontwork = true;
+let	dontwork = false;
 
 /*
 editDBs.changeEveryCat(cat => {
@@ -56,13 +56,13 @@ function createCharacter(rawData, req, res) {
 		    c = regCatName !== rawData.catName || regAlias !== rawData.alias || regPass !== rawData.password;
 
 		if (!(regCatName && regAlias && regPass) || a || b || c) {
-			sendCrJSON({ cr: 0, res: 'некорректные данные'} );
+			sendJSON(res, { cr: 0, res: 'некорректные данные'} );
 			return;
 		}
 
 		for(let i = 1; i <= db.totalCats; i++) {
-			if (db.cats[i].passwords === rawData.password) {
-				sendCrJSON({ res: 'придумайте другой пароль', cr: 0 });
+			if (db.cats[i].password === rawData.password) {
+				sendJSON(res, { res: 'придумайте другой пароль', cr: 0 });
 				return;
 			}
 		}
@@ -71,7 +71,7 @@ function createCharacter(rawData, req, res) {
 		c = ch.existingCookie(req.headers.cookie, rawData);
 		if (c < 0) {
 			didInfr('creatingTwoChar', -c);
-		      sendCrJSON({ cr: 0, res: `<span class="lower-text">У Вас уже есть персонаж по имени ${db[-c].catName}. ` +
+		      sendJSON(res, { cr: 0, res: `<span class="lower-text">У Вас уже есть персонаж по имени ${db[-c].catName}. ` +
 				`Создание сразу двух и более персонажей запрещено. Чтобы создать нового персонажа, нужно удалить старого.</span>` });
 			return;
 		}
@@ -314,10 +314,9 @@ function forStartServer(err) {
 		db.cache[c].lastVisitOfSite = Date.now();
 	}
 
-	console.log(c);
 	if (dontwork && c != 1 && c != 4) {
 		res.setHeader('content-type', 'text/plain; charset=utf-8');
-		res.end('Сайт временно отключен. Проводятся технические работы. Изувер, я сейчас чиню баги, поиграть не получится(');
+		res.end('Сайт временно отключен. Проводятся технические работы.');
 		return;
 	}
 
