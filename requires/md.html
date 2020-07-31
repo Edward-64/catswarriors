@@ -1,0 +1,259 @@
+<button class="back-button" type="button" onclick="backRequire();">Вернуться назад</button>
+<span class="head-text">Markdown</span>
+<div style="background: url('css/img/line.png') repeat-x;height: 20px;"></div>
+<div class="as-form norm-txt" style="text-align: center;">
+<p>
+	<strong>Markdown</strong> — это простой, удобный  и оттого быстрый способ оформить текст. Иначе говоря, Markdown — язык разметки страницы.
+	На нашем сайте поддерживается этот тип разметки в разговорах (мяукните на главной странице «разговоры» или просто «р», чтобы попробовать)
+</p>
+<p>
+	Например, следующий ввод при включение markdown-разметки приведёт к такому результату:
+</p>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly>### Мои кошки
+
+|Златоглазая|Хищница|
+|===========|=======|
+| добрая    | злая  |
+| пестрая   | белая |</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><h3>Мои кошки</h3>
+<table>
+<thead>
+<tr>
+<th>Златоглазая</th>
+<th>Хищница</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>добрая</td>
+<td>злая</td>
+</tr>
+<tr>
+<td>пестрая</td>
+<td>белая</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<p>
+	Если Вы знакомы с bb-кодами и до этого момента не знали о Markdown, то это должно было Вас удивить такой изящностью. КВ использует
+	библиотеку <a href="https://github.com/showdownjs/showdown/wiki">Showdown</a> для анализа сырого текста, однако, некоторый функционал
+	этой библиотеки ограничен на сайте.
+</p>
+<p>
+	Ниже приведён список доступных правил форматирования текста и примеры использования.
+</p>
+<h3>
+Заголовки
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">
+### Заголовок второго уровня
+###### Заголовок шестого уровня (минимальный, максимальный - одна решетка \#)</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><h3>Заголовок второго уровня</h3>
+<h6>Заголовок шестого уровня (минимальный, максимальный - одна решетка #)</h6>
+</div>
+</div>
+
+<h3>
+Игнорирование ключевых символов
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">Если Вы хотите предотвратить форматирование текста, поставьте
+перед ключевым символом знак обратного слеша \
+#### Заголовок четвертого уровня
+\#\#\#\# Проигнорированный заголовок четвертого уровня</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1">Если Вы хотите предотвратить форматирование текста, поставьте
+перед ключевым символом знак обратного слеша \
+<h4>Заголовок четвертого уровня</h4>
+#### Проигнорированный заголовок четвертого уровня
+</div>
+</div>
+
+<h3>
+Курсивный, полужирный и зачеркнутый текст
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">*курсив*
+**полужирный текст**
+***полужирный курсивный текст***
+~~зачеркнутый текст~~</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><em>курсив</em><br>
+<strong>полужирный текст</strong><br>
+<strong><em>полужирный курсивный текст</em></strong><br>
+<del>зачеркнутый текст</del>
+</div>
+</div>
+
+<h3>
+Код
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">`В одну строку`
+
+```
+Несколько строк
+Вторая строка
+Третья строка
+```</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><code>В одну строку</code></p>
+<pre><code>Несколько строк
+Вторая строка
+Третья строка
+</code></pre>
+</div>
+</div>
+
+<h3>
+Список
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">Можно использовать любые из этих знаков (\*,\+,\-)
+* Маркированный список
+* Раз
+* Два
++ Три
++ Четыре
+- Пять</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><p class="md-p">Можно использовать любые из этих знаков (*,+,-)</p>
+<ul>
+<li>Маркированный список</li>
+<li>Раз</li>
+<li>Два</li>
+<li>Три</li>
+<li>Четыре</li>
+<li>Пять</li>
+</ul>
+</div>
+</div>
+
+<h3>
+Цитаты
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">> Очень глубокомысленная цитата,
+> новая строчка которой должна начинаться
+> со специального символа</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><blockquote>
+  <p class="md-p">Очень глубокомысленная цитата,<br>
+  новая строчка которой должна начинаться<br>
+  со специального символа</p>
+</blockquote>
+</div>
+</div>
+
+
+<h3>
+Ссылки
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">Ссылки автоматически кликабельны (например, https://github.com) 
+В дополнение, можно указать название ссылки по такому синтаксису:
+[Название ссылки](куда ведет ссылка)
+[Нажми меня](https://github.com)
+</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1">Ссылки автоматически кликабельны (например, <a href="https://github.com/showdownjs/showdown)">https://github.com)</a> <br>
+Однако, можно указать название ссылки по такому синтаксису:<br>
+[Название ссылки](куда ведет ссылка)<br>
+<a href="https://github.com">Нажми меня</a>
+</div>
+</div>
+
+
+<h3>
+Изображения
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" readonly="">Изображения можно прикрепить по такому синтаксису:
+![если картинка по каким-илбо причинам не загрузится, текст здесь отобразится вместо картинки](адрес картинки)
+Например
+![CatsWarriorsArt](https://sun9-4.userapi.com/c206716/v206716702/15cd95/B2AzMdNi470.jpg)
+![CatsWarriorsArt](https://такой-картинки-нет.jpg)</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1">Изображения можно прикрепить по такому синтаксису:<br>
+![если картинка по каким-илбо причинам не загрузится, текст здесь отобразится вместо картинки](адрес картинки)<br>
+Например<br>
+<img class="md-img" src="https://sun9-4.userapi.com/c206716/v206716702/15cd95/B2AzMdNi470.jpg" width="200" alt="CatsWarriorsArt">
+<img class="md-img" src="https://такой-картинки-нет.jpg" alt="CatsWarriorsArt">
+</div>
+</div>
+
+
+<h3>
+И, наконец, таблицы
+</h3>
+<div class="md-demo-3">
+	<textarea rows="3" class="md-demo-2" style="overflow:auto;width:50%;margin:0px;"readonly="">Двоеточия в шапке таблицы задают выравнивание (слева, посередине и справа).
+Каждая новая строчка - новое поле таблицы.
+
+| Коты воители  | Это           | Круто    |
+| ------------- |:-------------:| --------:|
+| выровнено     | выровнено     | выровнено|
+|               | по            |          |
+| слева         | посередине    | справа   |
+
+И, кстати, не обязательно рисовать все черточки. Синтаксически допустимо и так:
+|Коты|Воители|
+|--|--|
+|первая строка|четвертая|
+|вторая|пятая|</textarea>
+	<img src="/css/img/arrow.svg" style="transform: scale(-1);">
+	<div class="md-demo-1"><p class="md-p">Двоеточия в шапке таблицы задают выравнивание (слева, посередине и справа).<br>
+Каждая новая строчка - новое поле таблицы.</p>
+<table>
+<thead>
+<tr>
+<th>Коты воители</th>
+<th style="text-align:center;">Это</th>
+<th style="text-align:right;">Круто</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>выровнено</td>
+<td style="text-align:center;">выровнено</td>
+<td style="text-align:right;">выровнено</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align:center;">по</td>
+<td style="text-align:right;"></td>
+</tr>
+<tr>
+<td>слева</td>
+<td style="text-align:center;">посередине</td>
+<td style="text-align:right;">справа</td>
+</tr>
+</tbody>
+</table>
+<p class="md-p">И, кстати, не обязательно рисовать все черточки. Синтаксически допустимо и так:</p>
+<table>
+<thead>
+<tr>
+<th>Коты</th>
+<th>Воители</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>первая строка</td>
+<td>четвертая</td>
+</tr>
+<tr>
+<td>вторая</td>
+<td>пятая</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>

@@ -1,0 +1,73 @@
+<button class="back-button" type="button" onclick="window.location='/';">Вернуться назад</button>
+<span class="head-text">Разговоры</span>
+<div style="background: url('css/img/line.png') repeat-x;height: 20px;"></div>
+<div style="display: flex;">
+	<div id="setting" class="as-form" style="width: 5%;">
+		<div style="position: relative;display:none;"><img src="/img/talk/0.svg"></div>
+		<div style="position: relative" onclick="app.talk.f.createTalk(true);"><img src="/img/talk/1.svg"></div>
+	</div>
+	<div class="as-form" style="width: 70%;">
+		<div id="preload" style="position: absolute;"><img src="/img/preloader.svg"></div>
+		<div id="talks"></div>
+		<div id="creating-talk" style="display:none">
+			<div>
+				<p>Выберите тип разговора.</p>
+				<form name="cTalk">
+					<input type="radio" value="0" name="log" onclick="app.talk.f.createTalk(null, ['log',+this.value]);"> Монолог
+					<div class="norm-txt">В монологе только главные в разговоре (например, инициатор монолога) могут говорить, а остальные слушают. Используйте этот тип разговора, если хотите только сообщать новости о чем-либо.</div>
+					<input type="radio" value="1" name="log" onclick="app.talk.f.createTalk(null, ['log',+this.value]);"> Диалог
+					<div class="norm-txt">В диалоге любой может говорить. Диалог может состоять более, чем из двух игроков.</div>
+				</form>
+			</div>
+			<div>
+
+			</div>
+		</div>
+		<div id="a-talk" style="height: 100%;display:none">
+			<div id="talk-input">
+				<div><div style="opacity: .5;min-height:20px;overflow: hidden;"></div></div>
+				<div class="a-talk-input">
+					<textarea oninput="app.talk.f.goWriting();" class="area-for-a-talk-input" rows="3" placeholder="Пишите здесь"></textarea>
+					<div class="button-for-a-talk-input">
+						<div><button style="font-size: 13pt;" class="form" onclick="app.talk.f.sendMeow();">Сказать</button></div>
+						<div class="talk-inkl-md"><input id="md" onclick="app.talk.f.serveCheckbox(this.checked)" type="checkbox">Включить Markdown</div>
+						<div class="talk-md-viever"><button id="markdown" style="display: none" class="form" onclick="app.talk.f.toMarkdown(this);">Предпросмотр</button></div>
+					</div>
+				</div>
+				<div style="color:rgb(15, 9, 5,.5)" class="a-talk-input"><i>Вы не можете участвовать в этом монологе</i></div>
+			</div>
+		</div>
+		<div id="a-talk-edit" style="display:none">
+			<div>
+				<input class="form edit-talk"><span>Название разговора</span>
+			</div>
+			<div>
+				<div class="form edit-talk">
+					<input value="0" name="log" type="radio"> Монолог
+					<input style="margin-left: 30px;" value="1" name="log" type="radio">  Диалог
+				</div><span>Тип</span>
+			</div>
+			<div style="position: relative;">
+				<span>Описание</span>
+				<textarea class="area-for-a-talk-input" style="width:99%" rows="10"></textarea>
+				<div class="talk-description" style="display:none;"></div>
+				<div class="form edit-talk-desc" onclick="app.talk.f.editToMarkdown(this.parentElement)">Предпросмотр</div>
+				<div><input type="checkbox" style="position: relative;top: 2px;">Включить Markdown</div>
+			</div>
+			<button class="form" style="margin: 5px;" onclick="app.talk.f.editTalk(this.previousElementSibling)">Закончить редактирование</button>
+		</div>
+		<div id="a-talk-members">
+
+		</div>
+		<div id="a-talk-description">
+
+		</div>
+	</div>
+	<div class="as-form" style="width: 18%;">
+		<div id="talks-right">
+			<div style="font-size:8pt"> Укажите здесь имя, которое смогут видеть незнающие Вас игроки. </div>
+			<input id="alias" class="form" style="margin-top:5px; width: 96%">
+		</div>
+		<div id="a-talks-right"></div>
+	</div>
+</div>
