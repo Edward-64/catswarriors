@@ -18,16 +18,16 @@ const http = require('http'),
 	},
 	ADMINS = [1];
 
-/*
-editDBs.changeEveryCat(cat => {
+
+/*editDBs.changeEveryCat((cat, pn) => {
 	try {
-		delete cat.lastUpdate;
-		return [null, cat];
+
+		return {}; //if need to save, data:cat
 	} catch (err) {
-		return [err];
+		return {error:true};
 	}
-});
-*/
+}); */
+
 setInterval(() => {
 	++other.time;
 }, 1000);
@@ -68,7 +68,7 @@ function clearCache(func) {
 		editDBs.save('db', () => changeDone(64));
 
 		const t = setInterval(() => {
-			console.log(l.done);
+			//console.log(l.done);
 			if (l.done == 127) {
 				clearInterval(t);
 				func();
@@ -467,6 +467,11 @@ function forStartServer(err) {
 						name: data.public.name
 					}});
 				}); break;
+			case '/r/getskin':
+				if (n && n[2]) editDBs.getCat(n[2], (err, data) => {
+					if (err) return sendJSON(res, { res: 0, msg: 'ошибка сервера' });
+					sendJSON(res, { res: 1, msg: data.game.public.skin });
+				}, true); break;
 			case '/play':
 				if (c > 0) {
 					if (db.cache[c].tmp.dontChooseCharacter) {
@@ -954,7 +959,7 @@ wss.on('connection', (ws, req) => {
 //			console.log(type, msg);
 			switch (type) {
 				case 102:
-					pn = ch.existingCookie(msg); console.log(pn);
+					pn = ch.existingCookie(msg); //console.log(pn);
 					if (pn <= 0) {ws.close(); return;}
 					talkClients.push({pn, ws});
 					wsSend(2, 'one', true, ws); break;
@@ -963,9 +968,9 @@ wss.on('connection', (ws, req) => {
 						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
 						known = known.knownPlayers;
 						db.cache[pn].talks.sort((a, b) => a.lastActiv < b.lastActiv);
-						console.log(db.cache[pn].talks);
+						//console.log(db.cache[pn].talks);
 						const t = [];
-							console.log('from ', msg[0], ' to ', msg[1]);
+							//console.log('from ', msg[0], ' to ', msg[1]);
 						for (let i = msg[0]; i < msg[1]; i++) {
 							if (!db.cache[pn].talks[i]) break;
 							const r = editDBs.getSyncTalk(db.cache[pn].talks[i].id, 'info.js', true);

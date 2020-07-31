@@ -85,9 +85,8 @@ app.talk = {
 		if (stackMeows.length) {
 			f.send(105, stackMeows[0]);
 			stackMeows.shift();
-		}
-		if (!stackMeows.length && bloks & 8) bloks = bloks ^ 8;
-	}, 700);
+		} else if (bloks & 8) bloks ^= 8;
+	}, 500);
 	app.talk.f.sendMeow = function() {
 		if (stackMeows.length > 20) return app.displayError('Стек переполнен. Сбавьте темп.');
 		let	c = document.getElementById('alias').value,
@@ -99,7 +98,7 @@ app.talk = {
 //unthebest var
 		if (ws.readyState === WebSocket.OPEN) document.getElementById('talk-input').children[1].children[0].value = '';
 		if (bloks & 8) return stackMeows.push(msg);
-		f.send(105, msg); bloks = bloks | 8;
+		f.send(105, msg); bloks |= 8;
 	}
 
 	function serveDisplayng(id) {
@@ -256,7 +255,6 @@ app.talk = {
 					for (let i = 0; i < l.length; i++) {
 						const pn = +l[i];
 						container.appendChild(renderKnown(pn, div => {
-							console.log(newTalk);
 							if (!newTalk.members.some((x, y) => {
 								if (x == pn) {
 									newTalk.members.splice(y, 1);
@@ -290,7 +288,7 @@ app.talk = {
 			generatedTalk.style.display = 'block';
 			generatedTalkR.style.display = 'block';
 		} else {
-			bloks = bloks | 1;
+			bloks |= 1;
 			preload.style.display = 'block';
 			let container = document.createElement('div');
 			container.classList.add('container-for-a-talk');
@@ -313,6 +311,7 @@ app.talk = {
 		app.displayError('Восстановление соединения...')
 		f.preload();
 		const a = setInterval(() => {
+			if (bloks & 16) bloks ^= 16;
 			if (ws.readyState == WebSocket.OPEN) {
 				app.displayDone('Соединение восстановлено!');
 				clearInterval(a);
@@ -346,9 +345,9 @@ app.talk = {
 
 				talks.onscroll = () => {
 					if (listingFields == maxFields || bloks & 32) return;
-					bloks = bloks | 32;
+					bloks |= 32;
 					setTimeout(() => {
-						if (bloks & 32) bloks = bloks ^ 32;
+						if (bloks & 32) bloks ^= 32;
 					}, 200);
 					if (talks.scrollTop > talks.scrollHeight - 800) {
 						f.send(103, [listingFields,listingFields+10]);
@@ -394,9 +393,9 @@ app.talk = {
 						generatedTalk.scrollTop = generatedTalk.scrollHeight;
 						generatedTalk.onscroll = () => {
 							if (bloks & 2 || TALKS[id].all) return;
-							bloks = bloks | 2;
+							bloks |=  2;
 							setTimeout(() => {
-								if (bloks & 2) bloks = bloks ^ 2;
+								if (bloks & 2) bloks ^= 2;
 							}, 200);
 
 							if (generatedTalk.scrollTop < generatedTalk.clientHeight) {
@@ -495,7 +494,7 @@ app.talk = {
 					else generatedTalk.scrollTop = generatedTalk.scrollHeight - lastScroll;
 
 					preload.style.display = 'none';
-					if (bloks & 1) bloks = bloks ^ 1;
+					if (bloks & 1) bloks ^= 1;
 					break;
 				case 5: {
 					moveToUp(data.id, data.sender != PN);
@@ -544,7 +543,7 @@ app.talk = {
 //			reconnect();
 			if (bloks & 16) return;
 			reconnect();
-			bloks = bloks | 16;
+			bloks |= 16;
 		}
 	}
 	function editFillDef(id) {
@@ -602,17 +601,31 @@ app.talk = {
 		return {time, div}
 	}
 
+	function getSkin(pn, div) {
+		if (bloks & 64) return setTimeout(() => getSkin(pn, div), 50);
+		bloks |= 64;
+		req.open('GET', `/r/getskin/${pn}`, true);
+		req.send();
+		req.onload = () => {
+			const {res, msg} = JSON.parse(req.response);
+			if (res) {
+				if (msg) div.children[0].children[0].style.backgroundImage = `url(${msg})`
+			} else app.displayError(`Не узналось загрузить образ персонажа ${KNOWN[pn] && KNOWN[pn][0] ? 'по имени ' + KNOWN[pn][0].value : 'с неизвестным именем'}`);
+			if (bloks & 64) bloks ^= 64;
+		}
+	}
 	function renderKnown(pn, func) {
 		const div = document.createElement('div');
 		div.classList.add('form'); div.classList.add('field-of-talks');
 		div.innerHTML = `<div style="display: inline-block;">` +
 			`<div style="background-color: ${colors[Math.floor(Math.random() * colors.length)]};`+
-			`background-image: url(${KNOWN[pn] && KNOWN[pn][3] ? KNOWN[pn][3].skin : '/img/players/2682152751.svg'});"` +
+			`background-image: url(/img/talk/6.svg);"` +
 			`class="talk-known-img"></div></div><div class="center-of-field-talk"><div>` +
 			`${KNOWN[pn] && KNOWN[pn][0] ? KNOWN[pn][0].value : 'Имя неизвестно'}</div><div class="norm-txt">` +
 			`${KNOWN[pn] && KNOWN[pn][1] ? KNOWN[pn][1].item + ' ' + KNOWN[pn][1].value : ''}</div>` +
 			`<div class="norm-txt">${KNOWN[pn] && KNOWN[pn][2] ? KNOWN[pn][2].item + ' ' + KNOWN[pn][2].value : ''}</div></div>` +
 			`<div class="talk-choose-members">Выбран <img src="/img/talk/4.svg"></div>`;
+		getSkin(pn, div);
 		div.onclick = () => func(div);
 		return {div};
 	}

@@ -136,27 +136,14 @@ class EditDBs extends require('events').EventEmitter {
 	}
 
 	changeEveryCat(func) {
-		let error = '';
+		try {
 		for (let i = 1; i <= db.totalCats; i++) {
-			this.getCat(i, (err, data) => {
-				if (err) return error += err
-				else {
-					try {
-					data = func(data);
-					if (data[0]) return error += data[0];
-					this.setCat(i, data[1], err => {
-						if (err) error += err;
-						if (i == db.totalCats) this.emit('changeEveryCat', error);
-					});
-					} catch (erroor) {
-						validator.log(erroor);
-					}
-				}
-			});
-			if (error) {
-				validator.log('Пройдено итераций: ', i, '\nОшибка: ' + error);
-				this.emit('changeEveryCat', error); break;
-			}
+			const result = func(this.getSyncCat(i, true), i);
+			if (result.error) break;
+			if (result.data) this.setCat(i, result.data);
+		}
+		} catch (err) {
+			validator.log('changeEveryCat(func): ' + err);
 		}
 	}
 

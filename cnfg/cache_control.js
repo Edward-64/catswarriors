@@ -18,12 +18,12 @@ function cacheControl(req, res, path) {
 		},
 		['/js/play.js']: {
 			include: true,
-			etag: '0.0.4',
+			etag: '1.0.0',
 			age: 86400
 		},
 		['/js/']: {
 			include: true,
-			etag: '0.0.2',
+			etag: '0.0.3',
 			age: 86400
 		},
 		['/img/cch/']: {
@@ -33,7 +33,7 @@ function cacheControl(req, res, path) {
 		},
 		['/img/talk/']: {
 			include: true,
-			etag: '0.0.1',
+			etag: '0.0.2',
 			age: 604800
 		},
 		['/img/players/']: {
@@ -55,11 +55,11 @@ function cacheControl(req, res, path) {
 	if (!cnfg[path]) {
 		path = path.startsWith('/js/') ? '/js/' : path;
 		path = path.startsWith('/css/img/') ? '/css/img/' : path.startsWith('/css/') ? '/css/' : path;
-		if (path.startsWith('/img/') {
-			if (path.startsWith('/img/cch/') path = '/img/cch/'
-			else if (path.startsWith('/img/talk/') path = '/img/talk/'
-			else if (path.startsWith('/img/players/') path = '/img/players/'
-			else if ((path.startsWith('/img/details/') path = '/img/details'
+		if (path.startsWith('/img/')) {
+			if (path.startsWith('/img/cch/')) path = '/img/cch/'
+			else if (path.startsWith('/img/talk/')) path = '/img/talk/'
+			else if (path.startsWith('/img/players/')) path = '/img/players/'
+			else if (path.startsWith('/img/details/')) path = '/img/details'
 			else path = '/img/';
 		}
 	}
