@@ -88,19 +88,27 @@
 	</div>
 	<div class="cch-viewer">
 		<object id="obj" data="/img/cch/0.svg" width="360" height="280">Не удалось загрузить SVG изображение</object>
-		<button class="form" style="font-size;font-size: 15pt;" onclick="app.cch.funcs.saveCharacter();">Играть!</button>
-		<div id="error" class="form" style="display:none;padding: 3px;">Персонаж не создан</div>
+		<button class="form" style="font-size;font-size: 15pt;margin-top:30px" onclick="app.cch.funcs.saveCharacter();">Играть!</button>
+		<div id="error" class="form cch-error">Персонаж не создан</div>
+		<div style="margin-top: 60px; opacity: 0.4;" onmouseover="this.style.opacity = 1;" onmouseout="this.style.opacity = 0.4;">
+			<textarea class="form" id="report" style="width: 80%; min-height: 60px;resize: none;" placeholder="Здесь вы можете оставить краткий комментарий"></textarea>
+			<button class="form" onclick="app.cch.funcs.report();">Сообщить о проблеме</button>
+		</div>
 	</div>
 </div>
 </div>
                         </div>
                 </div>
-        <div class="xrenovyi-iz-menya-verstalshik">
-                <div class="xrenovyi-iz-menya-verstalshik2">
-                        <span class="lower-text" style="margin-right: 5px">Разработано с помощью</span>
-                        <img height="20" width="31" src="https://nodejs.org/static/images/logo.svg" style="background: #26180c; border-rader-radius: 3px;">
-                </div>
-        </div>
+            <div class="xrenovyi-iz-menya-verstalshik">
+                  <div class="xrenovyi-iz-menya-verstalshik2">
+                        <span class="lower-text" style="margin-right: 20px;">© 2020 Рыболов</span>
+                        <div style="display: flex;align-items: center;">
+                              <span class="lower-text" style="margin-right: 5px">Разработано с помощью</span>
+                              <img height="20" width="31" src="https://nodejs.org/static/images/logo.svg"
+                              style="background: #26180c; border-radius: 3px;">
+                        </div>
+                  </div>
+            </div>
 <script src="js/handlerRequires.js"></script>
 <script src="js/cch_inh.js"></script>
 </body>

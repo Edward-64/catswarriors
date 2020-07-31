@@ -10,6 +10,7 @@ app.cch = {
 		changeWool: null, contrastPattern: null, addWhite: null, changeEyes: null, changeSkin: null,
 		nextPattern: null, nextWhite: null,
 		saveCharacter: null,
+		report: null,
 		rgbToHsl: null, hslToRgb: null
 	},
 	skin: {
@@ -282,14 +283,33 @@ app.cch = {
 			' что они не нарисованы.');
 			post(all, '/scch');
 			req.onload = () => {
-				const {res} = JSON.parse(req.responseText);
+				const {res, msg} = JSON.parse(req.responseText);
 				if (res) document.location.reload(true)
 				else {
+					document.getElementById('error').innerHTMl = 'Персонаж не создан' + msg ? `: ${msg}` : '';
 					document.getElementById('error').style.display = 'block';
 					setTimeout(() => {document.getElementById('error').style.display = 'none';}, 15000);
 				}
 			}
 		}
+	}
+
+	app.cch.funcs.report = function() {
+		post({
+			msg: document.getElementById('report').value,
+			all,
+			rangeWool: [+rangeWool.value, +rangeWool.min, +rangeWool.max],
+			rangePattern: [+rangePattern.value, +rangePattern.min, +rangePattern.max],
+			error: document.getElementById('error').innerHTML
+		}, '/issie');
+		req.addEventListener('load', () => {
+			const {res, msg} = JSON.parse(req.response),
+				c = document.getElementById('error');
+			if (res) c.innerHTML = 'Сообщение успешно отправлено'
+			else c.innerHTML = 'Сообщение не отправлено' + (msg ? `: ${msg}` : '');
+			c.style.display = 'block';
+			setTimeout(() => {c.style.display = 'none';}, 15000);
+		}, {once: true});
 	}
 
 	app.cch.funcs.preloader = function() {

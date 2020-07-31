@@ -3,10 +3,11 @@
 const http = require('http'),
 	fs = require('fs'),
 	formidable = require('formidable'),
-	{db, locs, other, editDBs} = require('./databases/launch.js'),
+	{db, locs, other, talks, editDBs} = require('./databases/launch.js'),
 	validator = require('./lib/validators.js'),
 	ch = require('./lib/cookie.js').include(db, validator),
 	cw = require('./lib/creating_world.js').include(db, locs, validator, editDBs),
+	ca = require('./lib/control_activs.js').include(talks),
 	queens = {
 		['племя Теней']: [[2, 9]],
 		['племя Ветра']: [[5, 10]],
@@ -14,9 +15,8 @@ const http = require('http'),
 		['Грозовое племя']: [[3, 8]],
 		['одиночка']: [[6, 11]],
 		['домашний котик']: [[6, 11]],
-	};
-
-let	dontwork = false;
+	},
+	ADMINS = [1];
 
 /*
 editDBs.changeEveryCat(cat => {
@@ -32,10 +32,85 @@ setInterval(() => {
 	++other.time;
 }, 1000);
 
+function clearCache(func) {
+	const timeout = 900000;
+	if (func) {
+		const l = {
+			talks: Object.keys(talks.cache),
+			db: Object.keys(db.cache),
+			locs: Object.keys(locs.cache),
+			done: 0
+		},
+		changeDone = function(n) {
+			l.done = l.done | n;
+		};
+		if (l.talks == 0) changeDone(1);
+		if (l.locs == 0) changeDone(4);
+		if (l.db == 0) changeDone(2);
+		for (let p in talks.cache) {
+			if (!talks.cache.hasOwnProperty(p)) continue;
+			editDBs.setTalk(p, 'info.js', talks.cache[p], p >= l.talks ? () => changeDone(1) : null);
+			delete talks.cache[p];
+		}
+		for (let p in locs.cache) {
+			if (!locs.cache.hasOwnProperty(p)) continue;
+			editDBs.setLoc(p, locs.cache[p], p >= l.locs ? () => changeDone(4) : null);
+			delete locs.cache[p];
+		}
+		for (let p in db.cache) {
+			if (!db.cache.hasOwnProperty(p)) continue;
+			editDBs.setCat(p, db.cache[p], p >= l.db ? () => changeDone(2) : null);
+			delete db.cache[p];
+		}
+		editDBs.save('talks', () => changeDone(8));
+		editDBs.save('other', () => changeDone(16));
+		editDBs.save('locs', () => changeDone(32));
+		editDBs.save('db', () => changeDone(64));
 
-setInterval(() => {
-	editDBs.save('other');
-}, 1800000);
+		const t = setInterval(() => {
+			console.log(l.done);
+			if (l.done == 127) {
+				clearInterval(t);
+				func();
+			}
+		}, 1000);
+	} else {
+		for (let p in talks.cache) {
+			if (!talks.cache.hasOwnProperty(p)) continue;
+			if (Date.now() - talks.cache[p].lastActiv > timeout &&
+			    Date.now() - talks.cache[p].lastUpdate > timeout) {
+				editDBs.setTalk(p, 'info.js', talks.cache[p]);
+				delete talks.cache[p];
+			}
+		}
+		for (let p in locs.cache) {
+			if (!locs.cache.hasOwnProperty(p)) continue;
+			if (Date.now() - locs.cache[p].lastUpdate > timeout) {
+				editDBs.setLoc(p, locs.cache[p]);
+				delete locs.cache[p];
+			}
+		}
+		for (let p in db.cache) {
+			if (!db.cache.hasOwnProperty(p)) continue;
+			if (Date.now() - db.cache[p].game.last > timeout &&
+			    Date.now() - db.cache[p].lastVisitOfSite > timeout &&
+			    Date.now() - db.cache[p].lastUpdate > timeout) {
+				editDBs.setCat(p, db.cache[p]);
+				delete db.cache[p];
+			}
+		}
+		editDBs.save('talks');
+		editDBs.save('other');
+		editDBs.save('locs');
+		editDBs.save('db');
+	}
+}
+
+setInterval(clearCache, 3600000);
+
+process.on('SIGTERM', () => {
+	clearCache(() => process.exit());
+});
 
 const cacheControl = require('./cnfg/cache_control.js');
 
@@ -129,14 +204,43 @@ function createCharacter(rawData, req, res) {
 						iteractions: [],
 						clan,
 					},
-					tmp: { dontChooseCharacter: true, haventGotParents: true }
+					tmp: { dontChooseCharacter: true, haventGotParents: true },
+					talks: [{id:1,userLastActiv:1596154620623,lastActiv:1596154620624}]
 				}
 
 				ch.setCookie({alias: rawData.alias, password: rawData.password}, res, true);
 				db.cache[pnNewCat] = newCat;
-				editDBs.save('db'); //удалить потом
+
+				const newTalk = ++talks.totalTalks,
+					theTalk = {
+						img: '/img/talk/2.svg',
+						color: '#c6dce4',
+						type: 1,
+						name: 'Диалог с технической поддержкой',
+						members: ADMINS.concat(pnNewCat),
+						admins: ADMINS,
+						activ: 0,
+						lastActiv: Date.now() - 3000
+					};
+				fs.mkdir(__dirname + `/databases/talks/${newTalk}`, err => {
+				if (err) return sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'});
+				fs.writeFile(__dirname + `/databases/talks/${newTalk}/info.js`, JSON.stringify(theTalk), err => {
+				if (err) return sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'});
+					for (let i = 0; i < theTalk.members.length; i++) {
+						editDBs.getCat(theTalk.members[i], (err, data) => {
+							if (err) return;
+							data.talks.push({id: newTalk, userLastActiv: Date.now(), lastActiv: Date.now()});
+							if (!db.cache[theTalk.members[i]]) editDBs.setCat(theTalk.members[i], data);
+						}, true);
+					}
+				});
+				});
+				editDBs.getTalk(1, 'info.js', (err, data) => {
+					if (err) return sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'});
+					data.members.push(pnNewCat);
+				});
 				editDBs.setCat(pnNewCat, newCat, err => {
-					if (err) { sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'}); return; }
+					if (err) return sendJSON(res, {cr: 0, res: 'неожиданная ошибка сервера...'});
 					sendJSON(res, { res: 'Персонаж создан! Нажмите сюда, чтобы активировать его', cr: 1});
 				});
 			});
@@ -191,7 +295,7 @@ function createOC(fromUser, res, pn) {
 							if (inh.patterns[p] > 1) inh.patterns[p] = 1;
 						}
 						editDBs.setDB('inherited.js', inh, null, pn);
-					} else sendJSON(res, { res: 0 });
+					} else sendJSON(res, { res: 0, msg: 'не пройдена валидация наследования' });
 				}
 			}, pn);
 		}
@@ -212,21 +316,23 @@ function download(req, res, contentLength, path) {
 	if (contentLength > 1048576) {
 		res.statusCode = 400;
 		res.setHeader('content-type', 'text/plain; charset=utf-8');
-		res.end('Слишком тяжелый файл (более 1-го Мбайта)');
+		return res.end('Слишком тяжелый файл (более 1-го Мбайта)');
 	}
 	let form = new formidable.IncomingForm();
 	form.parse(req, (err, fields, files) => {
-		if(err) error500(res, 'Произошла ошибка на стороне сервера. Error in download, part of formidable.');
+		if(err) return error500(res, 'Произошла ошибка на стороне сервера. Error in download, part of formidable.');
 		if(files.photo.size > 1048576) {
 			res.statusCode = 400;
 			res.setHeader('content-type', 'text/plain; charset=utf-8')
-			res.end('Слишком тяжелый файл (более 1-го Мбайта)');
+			return res.end('Слишком тяжелый файл (более 1-го Мбайта)');
 		}
 		fs.readFile(files.photo.path, (err, data) => {
 			if(err) error500(res, 'Произошла ошибка на стороне сервера. Error in download, part of server.')
-			else fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => { if (err) error500(res) });
+			else fs.writeFile(__dirname + fields.path + files.photo.name, data, (err) => {
+				if (err) error500(res)
+				else getStaticFile(res, '/index.html', null, 'text/html');
+			});
 		});
-		getStaticFile(res, '/index.html', null, 'text/html');
 	});
 }
 
@@ -252,9 +358,10 @@ function getJSON(req, res, contentLength, cmd, pn) {
 				case '/ac': ch.setCookie(body, res); break;
 				case '/cc': createCharacter(body, req, res); break;
 				case '/ar': parseAnotherRequest(body.require, res, req, pn); break;
-				case '/crnewloc': cw.addLocation(res, body, __dirname); break;
+				case '/crnewloc': cw.addLocation(res, body); break;
+				case '/edtloc': cw.editLocation(res, body); break;
 				case '/scch': createOC(body, res, pn); break;
-				case '/addpath': cw.addPath(res, body); break;
+				case '/issie': body.pn = pn; validator.log(JSON.stringify(body)); break;
 			}
 		} catch(err) {
 			validator.log(err);
@@ -299,6 +406,10 @@ try {
 			n = path.match(/\d+/g);
 			if (n && n.length < 3) path = path.replace(/\d+.*/, '');
 			else n = null;
+		} else if (path.startsWith('/r/')) {
+			n = path.match(/[\w\d\.\_]+/g);
+			if (n && n.length > 1) path = `/r/${n[1]}`
+			else n = null;
 		}
 	} else path = '/';
 
@@ -312,12 +423,6 @@ function forStartServer(err) {
 	if (c > 0) {
 		p = db.cache[c].role;
 		db.cache[c].lastVisitOfSite = Date.now();
-	}
-
-	if (dontwork && c != 1 && c != 4) {
-		res.setHeader('content-type', 'text/plain; charset=utf-8');
-		res.end('Сайт временно отключен. Проводятся технические работы.');
-		return;
 	}
 
 	const ccache = cacheControl(req, res, path);
@@ -342,9 +447,26 @@ function forStartServer(err) {
 			case '/js/cch_inh.js':
 				if (ccache) break; getStaticFile(res, '/js/cch_inh.js', null, 'application/javascript'); break;
 			case '/js/cw.js':
-				if (ccache) break; getStaticFile(res, '/js/cw.js', null, 'application/javascript'); break;
+				if (ccache) break;
+				if (/creater/.test(p)) getStaticFile(res, '/js/cw.js', null, 'application/javascript')
+				else error404(res); break;
+			case '/js/talk.js':
+				if (ccache) break; getStaticFile(res, '/js/talk.js', null, 'application/javascript'); break;
 			case '/js/cw_no_creater.js':
 				if (ccache) break; getStaticFile(res, '/js/cw_no_creater.js', null, 'application/javascript'); break;
+			case '/js/md.js':
+				if (ccache) break; getStaticFile(res, '/js/md.js', null, 'application/javascript'); break;
+			case '/r/getloc':
+				if (n && n[2]) editDBs.getLoc(n[2], (err, data) => {
+					if (err) return sendJSON(res, { res: 0, msg: 'ошибка сервера' });
+					sendJSON(res, { res: 1, msg: {
+						paths: data.paths,
+						disallow: data.disallow,
+						landscape: data.public.landscape,
+						texture: data.public.surface,
+						name: data.public.name
+					}});
+				}); break;
 			case '/play':
 				if (c > 0) {
 					if (db.cache[c].tmp.dontChooseCharacter) {
@@ -406,8 +528,8 @@ function forStartServer(err) {
 						}
 						getStaticFile(res, '/requires/cch_inh.html', null, 'text/html');
 					} else {
-						res.setHeader('set-cookie', [`timeauth=${db.cache[c].cookie};max-age=60;SameSite=lax`,
-										     `timealias=${encodeURI(db.cache[c].alias)};max-age=60;SameSite=lax`]);
+					//	res.setHeader('set-cookie', [`timeauth=${db.cache[c].cookie};max-age=60;SameSite=lax`,
+					///					     `timealias=${encodeURI(db.cache[c].alias)};max-age=60;SameSite=lax`]);
 						getStaticFile(res, '/play.html', null, 'text/html');
 					}
 				}
@@ -429,17 +551,20 @@ function forStartServer(err) {
 			case '/activ':
 				if (c <= 0) getStaticFile(res, '/requires/activ.html', 'json') //да
 				else afterCheckCookie(res, {res: 2, catName: db.cache[c].catName}); break; //уже активировaн
+			case '/talks':
+				if (c > 0) getStaticFile(res, '/requires/talks.html', 'json')
+				else sendJSON(res, { res: 0 }); break;
+			case '/markdown':
+				getStaticFile(res, '/requires/md.html', 'json'); break;
 			case '/getocw':
-				let objsExNames;
-				cw.getNamesExDetails(__dirname);
+				cw.getNamesExDetails();
 				cw.once('finishGetNamesExDetails', (err, e) => {
 					if (err) return sendJSON(res, {res: 0});
-					objsExNames = e;
-					cw.getNamesDetails(__dirname);
+					cw.getNamesDetails();
 					cw.once('finishGetNamesDetails', (err, f) => {
 						if (err) return sendJSON(res, {res: 0});
 						const sendedData = {
-							objsExNames,
+							objsExNames: e,
 							objsNames: f,
 							texsNames: locs.texs,
 						}
@@ -448,8 +573,7 @@ function forStartServer(err) {
 							sendJSON(res, {res: 1, data: sendedData});
 						} else sendJSON(res, {res: 1, data: sendedData});
 					});
-				});
-				break;
+				}); break;
 			case '/getacch':
 				editDBs.getDB('cch.js', (err, data) => {
 					if (err) { sendJSON(res, { res: 0 }); validator.log(err); }
@@ -469,7 +593,9 @@ function forStartServer(err) {
 			case '/img/cch/patt/':
 				if (ccache) break; getStaticFile(res, `/img/cch/patt/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/cch/wht/':
-				if (ccache) break; getStaticFile(res, `/img/cch/wht/${n}.svg`, null, 'image/svg+xml'); break;
+				if (ccache) break; getStaticFile(res, `/img/cch/wht/${n}.svg`, null, 'image/svg+xml'); break;;
+			case '/img/talk/':
+				if (ccache) break; getStaticFile(res, `/img/talk/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/textures/':
 				if (ccache) break; getStaticFile(res, `/img/textures/${n}.svg`, null, 'image/svg+xml'); break;
 			case '/img/details/':
@@ -505,6 +631,9 @@ function forStartServer(err) {
 				if (ccache) break; getStaticFile(res, '/css/img/head.jpg', null, 'image/jpg'); break;
 			case '/dac':
 				ch.deleteCookie(res); break;
+			case '/getcookie':
+				if (c > 0) sendJSON(res, {res: 1, cookie: db.cache[c].cookie, alias: db.cache[c].alias})
+				else sendJSON(res, {res: 0}); break;
 			default: error404(res); break;
 		}
 	}
@@ -513,21 +642,31 @@ function forStartServer(err) {
 			switch (path) {
 				case '/dlf':
 					if (/admin/.test(p)) download(req, res, contentLength)
-					else validator.log('${c} пытался отправить POST ${path}'); break;
+					else validator.log(`${c} пытался отправить POST ${path}`); break;
 				case '/cc':
 					if (c == 0) getJSON(req, res, contentLength, path)
-					else validator.log('${c} пытался отправить POST ${path}'); break;
+					else validator.log(`${c} пытался отправить POST ${path}`); break;
 				case '/ac':
 					if (c <= 0) getJSON(req, res, contentLength, path)
-					else validator.log('${c} пытался отправить POST ${path}'); break;
+					else validator.log(`${c} пытался отправить POST ${path}`); break;
 				case '/ar':
 					getJSON(req, res, contentLength, path, c); break;
 				case '/crnewloc':
 					if (/creater/.test(p)) getJSON(req, res, contentLength, path)
-					else validator.log('${c} пытался отправить POST ${path}'); break;
-				case '/addpath':
+					else validator.log(`${c} пытался отправить POST ${path}`); break;
+				case '/edtloc':
 					if (/creater/.test(p)) getJSON(req, res, contentLength, path)
-					else validator.log('${c} пытался отправить POST ${path}'); break;
+					else validator.log(`${c} пытался отправить POST ${path}`); break;
+				case '/issie':
+					if (c > 0) {
+						if (db.cache[c].tmp.issies) ++db.cache[c].tmp.issies
+						else db.cache[c].tmp.issies = 1;
+						if (db.cache[c].tmp.issies > 5) sendJSON(res, {res: 0, msg: 'нельзя отправить более пяти сообщений о проблеме'});
+						else {
+							sendJSON(res, {res: 1});
+							getJSON(req, res, contentLength, path, c);
+						}
+					} break;
 				case '/scch':
 					if (c > 0 && db.cache[c].tmp.dontChooseCharacter) getJSON(req, res, contentLength, path, c); break;
 		}
@@ -539,21 +678,24 @@ function forStartServer(err) {
 
 const WebSocket = require('ws'),
 	wss = new WebSocket.Server({ server }),
-	clients = [];
+	clients = [], talkClients = [],
+	colorsOfTalks = ['#a5bdba','#795d7c','#4d4178','#ffe7d9','#f7c4c6','#6b7c8f','#f4c7aa','#df9a91','#686a97',
+                      '#e4eaef','#c6dce4','#81b5bb','#348694','#294d52','#44a2a7','#9fad3c','#817a2e','#5d5505',
+                      '#63361b','#8f5936','#e1bd6e'];
 
 setInterval(() => {
 	clients.forEach((x, i) => {
-		if (Date.now() - db.cache[x.pn].game.last > 15 * 60000) {
+		if (db.cache[x.pn] && Date.now() - db.cache[x.pn].game.last > 15 * 60000) {
 			 wsSend(14, 'inloc', [x.loc, {pn: x.pn, s: 'doze'}]);
 		}
 	});
 }, 60000);
 
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
 	let	pn = null, cat = [null, null], control = null;
 
-/*
-	let	lastPong = Date.now();
+
+/*	let	lastPong = Date.now();
 	const pingpong = setInterval(() => {
 		ws.ping(null, false, () => {
 			if (Date.now() - lastPong > 10000) {
@@ -567,16 +709,24 @@ wss.on('connection', ws => {
 	ws.on('pong', () => {
 		lastPong = Date.now();
 		console.log('got pong');
-	});
-*/
+	}); */
+
+	switch (req.headers['sec-websocket-protocol']) {
+	case 'play': {
 	ws.on('message', m => {
 		try {
 	      	let {type, msg} = JSON.parse(m);
-			if (pn) db.cache[pn].game.last = Date.now();
+			if (pn)
+				if (db.cache[pn]) cat[0].last = Date.now();
+				else {
+					editDBs.getSyncCat(pn);
+					cat[0] = db.cache[pn].game;
+					cat[1] = db.cache[pn].game.public;
+				}
 			switch (type) {
 				case 102: {
-					pn = ch.existingCookie(decodeURI(msg.token));
-					if (pn <= 0) {ws.close(); break;}
+					pn = ch.existingCookie(msg);
+					if (pn <= 0) {ws.close(); return;}
 
 					const c = clients.findIndex(i => i.pn == pn);
 					if (!db.cache[pn]) editDBs.getSyncCat(pn);
@@ -589,9 +739,9 @@ wss.on('connection', ws => {
 
 					if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
 					if (!locs.cache[cat[1].lastPlace[3]].public.fill.some(x => pn == x))
-								locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
+						locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
 					editDBs.getDB('knowledge.js', (err, data) => {
-						if (err) wsSend(7, 'one', `Ошибка!`, ws)
+					if (err) wsSend(7, 'one', `Ошибка!`, ws)
 						else {
 							wsSend(2, 'one', {pn, known: data.knownPlayers,
 										itr: db.cache[pn].game.iteractions,
@@ -602,7 +752,8 @@ wss.on('connection', ws => {
 							wsSend(14, 'inloc', [cat[1].lastPlace[3], {pn, s: 'go'}]);
 						}
 					}, pn); break;
-				} case 103: {
+				}
+				case 103: {
 					if (!validator.msg(pn, cat, 103, msg)) {ws.close();break;}
 					if (cat[0].block & (1 | 2)) {
 						if (msg.value[0] - cat[1].lastPlace[0] > 0) cat[1].lastPlace[2] = 1
@@ -611,27 +762,24 @@ wss.on('connection', ws => {
 						break;
 					}
 
-					clearTimeout(control);
+					clearInterval(control);
+
+					msg.value[1] = msg.value[1] < 0 ? 0 : msg.value[1];
+					msg.value[1] = msg.value[1] > 30 ? 30 : msg.value[1];
 
 					const disX = msg.value[0] - cat[1].lastPlace[0], disY = msg.value[1] - cat[1].lastPlace[1],
 						dis = Math.round(Math.sqrt(Math.pow(disX, 2) + Math.pow(disY, 2))) * cat[1].speed,
 						stepX = disX / 5, stepY = disY / 5;
-					let	moving = null, orient = cat[1].lastPlace[2], p = locs.cache[cat[1].lastPlace[3]].paths;
+					if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
+					let	moving, orient = cat[1].lastPlace[2], p = locs.cache[cat[1].lastPlace[3]];
 
 					if (!dis) break;
 
-	           			for(let j = 0; j < p.length; j++) {
-	           				if (p[j].minChunk[0] <= msg.value[0] && p[j].maxChunk[0] >= msg.value[0] &&
-	           				p[j].minChunk[1] <= msg.value[1] && p[j].maxChunk[1] >= msg.value[1]) {
-							moving = p[j].to.map(i => i);
-	                                    break;
-	           				}
-	           			}
+					for(let j = 0; j < p.paths.length; j++)
+						if (p.paths[j][msg.value[0]] >> msg.value[1] & 1) moving = p.paths[j].to;
 
-					msg.value[0] = msg.value[0] < 20 ? 20 : msg.value[0];
-					msg.value[0] = msg.value[0] > 140 ? 140 : msg.value[0];
-					msg.value[1] = msg.value[1] < 0 ? 0 : msg.value[1];
-					msg.value[1] = msg.value[1] > 30 ? 30 : msg.value[1];
+					msg.value[0] = msg.value[0] < 10 ? 10 : msg.value[0];
+					msg.value[0] = msg.value[0] > 150 ? 150 : msg.value[0];
 
 					if (disX > 0) cat[1].lastPlace[2] = 1
 					else if (disX < 0) cat[1].lastPlace[2] = 0;
@@ -639,12 +787,13 @@ wss.on('connection', ws => {
 					wsSend(5, 'inloc', [cat[1].lastPlace[3], {pn: pn, s: {dis: dis, oldchunk: cat[1].lastPlace,
 						 newchunk: [msg.value[0], msg.value[1], cat[1].lastPlace[2]]}}]);
 
-					//это нормально, что контроль в глобальной области и постоянно переписывается?
-					for(let i = 0; i < dis; i += dis/5) {
-						control = setTimeout(() => {
-							cat[1].lastPlace[0] += stepX;
-							cat[1].lastPlace[1] += stepY;
-							if (i + dis/5 >= dis && moving) {
+					let i_total = 0, i_step = dis/5;
+					control = setInterval(() => {
+						try {
+						i_total += i_step;
+						if (i_total >= dis) {
+							clearInterval(control);
+							if (moving) {
 								p = locs.cache[cat[1].lastPlace[3]].public.fill;
 								p.some((i, j) => {
 									if (pn == i) {
@@ -653,22 +802,32 @@ wss.on('connection', ws => {
 									}
 								});
 								wsSend(8, 'inloc', [cat[1].lastPlace[3], pn]);
-								cat[1].lastPlace = moving;
-								p = clients.findIndex(i => i.pn == pn);
-								if (p != -1) {
-									clients[p].loc = cat[1].lastPlace[3];
-									if (!locs.cache[cat[1].lastPlace[3]]) editDBs.getSyncLoc(cat[1].lastPlace[3]);
+								cat[1].lastPlace = moving.map(a => a);
+								editDBs.getLoc(cat[1].lastPlace[3], err => {
+									if (err) return;
 									locs.cache[cat[1].lastPlace[3]].public.fill.push(pn);
+
+									p = clients.findIndex(i => i.pn == pn);
+									if (p != -1) clients[p].loc = cat[1].lastPlace[3];
 									wsSend(4, 'inloc', [cat[1].lastPlace[3], serveBeforeSend(pn)]);
 									wsSend(3, 'one', {del: true, loc: serveLocBeforeSend(cat[1].lastPlace[3])}, ws);
-								}
+								});
 							}
-
-						}, i);
-					} break;
+						} else {
+							if (p.disallow[cat[1].lastPlace[0] + stepX] >>
+							    msg.value[cat[1].lastPlace[1] + stepY] & 1) console.log('нет');
+							cat[1].lastPlace[0] += stepX;
+							cat[1].lastPlace[1] += stepY;
+						}
+						} catch (err) {
+							validator.log('105 in play: ' + err);
+						}
+					}, i_step); break;
 				} case 104: {
 					if (!validator.msg(pn, cat, 104, msg)) {ws.close(); break;}
 					if (!msg.value || !msg.value.replace(/\s/g, '')) break;
+					const cmd = command(msg.value, pn);
+					if (cmd) return wsSend(7, 'one', cmd, ws);
 					msg.value = msg.value.match(/[^\s]{0,30}/g).join(' ');
 					msg.value = msg.value.length > 200 ? msg.value.slice(0, 200) + ' ...' : msg.value;
 					wsSend(6, 'inloc', [ cat[1].lastPlace[3], { msg: msg.value, pn, }]);
@@ -756,8 +915,8 @@ wss.on('connection', ws => {
 				} case 109:
 					if (!validator.msg(pn, cat, 109, msg)) {ws.close(); break;}
 					editDBs.getDB('knowledge.js', (err, data) => {
-						if (err) { wsSend(7, 'one', `Ошибка!`, ws); return; }
-						if (Object.keys(data.knownPlayers).length > 100) { wsSend(7, 'one', 'Вы не можете помнить больше ста котиков'); return; }
+						if (err) return wsSend(7, 'one', `Ошибка!`, ws);
+						if (Object.keys(data.knownPlayers).length > 100) return wsSend(7, 'one', 'Вы не можете помнить больше ста котиков');
 						if (!data.knownPlayers[msg.pn]) data.knownPlayers[msg.pn] = {};
 						for (let p in msg.data) {
 							if (!msg.data.hasOwnProperty(p)) continue;
@@ -766,7 +925,7 @@ wss.on('connection', ws => {
 						editDBs.setDB('knowledge.js', data, err => {
 							if (err) wsSend(7, 'one', `Ошибка`, ws);
 						}, pn);
-					}, pn);
+					}, pn); break;
 				  case 105:
 					if (!cat[1]) {ws.close(); break;}
 					wsSend(14, 'inloc', [cat[1].lastPlace[3], {pn, s: 'go'}]); break;
@@ -783,7 +942,196 @@ wss.on('connection', ws => {
 		cat[0].block = cat[0].block & 1;
 		clients.splice(clients.findIndex(i => i.pn == pn), 1);
 		console.log('Сокет закрылся');
-	});
+	}); break;
+	} case 'talks': {
+		ws.on('message', m => {
+			try {
+		      let {type, msg} = JSON.parse(m);
+			if (pn) {
+				if (db.cache[pn]) db.cache[pn].lastVisitOfSite = Date.now();
+				else editDBs.getSyncCat(pn);
+			}
+//			console.log(type, msg);
+			switch (type) {
+				case 102:
+					pn = ch.existingCookie(msg); console.log(pn);
+					if (pn <= 0) {ws.close(); return;}
+					talkClients.push({pn, ws});
+					wsSend(2, 'one', true, ws); break;
+				case 103: {
+					editDBs.getDB('knowledge.js', (err, known) => {
+						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+						known = known.knownPlayers;
+						db.cache[pn].talks.sort((a, b) => a.lastActiv < b.lastActiv);
+						console.log(db.cache[pn].talks);
+						const t = [];
+							console.log('from ', msg[0], ' to ', msg[1]);
+						for (let i = msg[0]; i < msg[1]; i++) {
+							if (!db.cache[pn].talks[i]) break;
+							const r = editDBs.getSyncTalk(db.cache[pn].talks[i].id, 'info.js', true);
+							r.id = db.cache[pn].talks[i].id;
+							r.userLastActiv = db.cache[pn].talks[i].userLastActiv;
+							t.push(r);
+						}
+						if (msg[0]) wsSend(11, 'one', {t, max: db.cache[pn].talks.length}, ws)
+						else wsSend(3, 'one', {t, known, pn, max: db.cache[pn].talks.length}, ws);
+					}, pn); break;
+				}
+				case 104: {
+					editDBs.getTalk(msg[2], 'info.js', (err, data) => {
+					if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+					if (!data.members.some(a => a == pn)) return wsSend(7, 'one', 'Нет доступа', ws);
+					fs.readdir(__dirname + `/databases/talks/${msg[2]}`, (err, dirs) => {
+						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+						dirs.splice(dirs.indexOf('info.js'), 1);
+						if (dirs.length == 0) return wsSend(4, 'one', null, ws);
+						const t = []; let r;
+						dirs = dirs.map(x => +x);
+						dirs.sort(); dirs.reverse();
+						editDBs.getTalk(msg[2], 'info.js', (err, data) => {
+						for (let i = msg[0]; i < msg[1]; i++) {
+							if (dirs[i] == undefined) break;
+							r = editDBs.getSyncTalk(msg[2], dirs[i]);
+							r.id = +dirs[i]; if (data.read && data.read[1] < r.id) r.read = data.read;
+							t.push(r);
+						}
+						if (dirs.length > 2000) deleteTalks(dirs.slice(-500));
+						wsSend(4, 'one', t, ws);
+						});
+					});
+					}, true); break;
+				}
+				case 105: {
+					editDBs.getTalk(msg.id, 'info.js', (err, data) => {
+						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+						msg.sender = pn;
+						if (data.members.some(i => i == pn)) {
+							if (data.type == 0 && !data.admins.some(i => i == pn)) return wsSend(7, 'one', 'Нет доступа', ws);
+							editDBs.setTalk(msg.id, Date.now(), msg, (err, id) => {
+								if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+
+								ca.hTalk(msg.id); if (!talks.cache[msg.id].read) talks.cache[msg.id].read = [pn, id - 10];
+
+								const t = db.cache[pn].talks[db.cache[pn].talks.findIndex(a => a.id == msg.id)];
+								if (t) t.userLastActiv = Date.now();
+								talks.cache[msg.id].lastActiv = Date.now();
+
+								const sendAsync = function(err, cat, catPn, nocached) {
+									if (err) return;
+									const p = cat.talks[cat.talks.findIndex(j => j.id == msg.id)];
+									p.lastActiv = Date.now();
+									if (nocached) editDBs.setCat(catPn, cat);
+									const c = talkClients.findIndex(j => j.pn == catPn);
+									if (c != -1) {
+										const r = Object.assign({}, msg);
+										r.msgId = id; r.read = true;
+										wsSend(5, 'some', r, getWsOf(talkClients[c].pn));
+									}
+								}
+								const s = talks.cache[msg.id].activ < 10;
+								for (let i = 0; i < data.members.length; i++ ) {
+									if (db.cache[data.members[i]])
+										sendAsync(null, db.cache[data.members[i]], data.members[i])
+									else {
+										editDBs.getCat(data.members[i], (err, cat) => {
+											sendAsync(err, cat, data.members[i], s);
+										}, s);
+									}
+								}
+							});
+						} else return wsSend(7, 'one', 'Нет доступа', ws);
+					}); break;
+				}
+				case 106: {
+					editDBs.getDB('knowledge.js', (err, known) => {
+						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+						known = Object.keys(known.knownPlayers).map(i => +i);
+						for (let i = 0; i < msg.members.length; i++) {
+							if (!known.some(j => j == msg.members[i])) {
+								validator.log('Несоотвествие данных, отправитель ' + pn + ': \n\n' +
+								JSON.stringify(known, msg.members));
+								return wsSend(7, 'one', 'Ошибка! Несоответствие данных.', ws);
+							}
+						}
+						msg.members.push(pn);
+						const newTalk = ++talks.totalTalks,
+							theTalk = {
+								img: msg.members.length > 3 ? '/img/talk/5.svg' : '/img/talk/2.svg',
+								color: colorsOfTalks[Math.floor(Math.random() * colorsOfTalks.length)],
+								type: msg.log,
+								name: `Безымянный ${msg.log ? 'диалог' : 'монолог'} №${newTalk}`,
+								members: msg.members,
+								admins: [pn],
+								activ: 0,
+								lastActiv: Date.now() - 3000
+							};
+						fs.mkdir(__dirname + `/databases/talks/${newTalk}`, err => {
+							if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+							fs.writeFile(__dirname + `/databases/talks/${newTalk}/info.js`, JSON.stringify(theTalk), err => {
+								if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+								talks.cache[newTalk] = theTalk;
+								talks.cache[newTalk].lastUpdate = Date.now();
+								theTalk.id = newTalk;
+								for (let i = 0; i < msg.members.length; i++) {
+									editDBs.getCat(msg.members[i], (err, data) => {
+										if (err) return;
+										data.talks.push({id: newTalk, userLastActiv: Date.now(), lastActiv: Date.now()});
+										const c = talkClients.findIndex(j => j.pn == msg.members[i]);
+										if (c != -1) wsSend(6, 'some', theTalk, getWsOf(talkClients[c].pn));
+										if (!db.cache[msg.members[i]]) editDBs.setCat(msg.members[i], data);
+									}, true);
+								}
+							});
+						});
+					}, pn); break;
+				}
+				case 107: {
+					const t = db.cache[pn].talks[db.cache[pn].talks.findIndex(a => a.id == msg.id)];
+					if (t) {
+						t.userLastActiv = Date.now();
+						editDBs.getTalk(msg.id, 'info.js', (err, data) => {
+							if (!data.read || data.read[0] == pn || err) return;
+							const c = talkClients.findIndex(j => j.pn == data.read[0]);
+							if (c != -1) wsSend(8, 'some', [msg.id,data.read[1]], getWsOf(talkClients[c].pn));
+							delete data.read;
+							editDBs.setTalk(msg.id, 'info.js', data);
+						});
+					}
+					break;
+				}
+				case 108:
+					editDBs.getTalk(msg.id, 'info.js', (err, data) => {
+						if (err) return;
+						for (let i = 0; i < data.members.length; i++) {
+							const c = talkClients.findIndex(j => j.pn == data.members[i]);
+							if (c != -1) wsSend(9, 'some', [msg.id, pn, msg.alias], getWsOf(talkClients[c].pn));
+						}
+					}, talks.cache[msg.id] ? talks.cache[msg.id].activ < 10 : true); break;
+				case 109:
+					editDBs.getTalk(msg.id, 'info.js', (err, data) => {
+						if (err) return wsSend(7, 'one', 'Ошибка!', ws);
+						if (!msg.name.replace(/\s+/g,'')) delete msg.name;
+						for (let p in msg) {
+							if (!msg.hasOwnProperty(p) || p == 'id') continue;
+							data[p] = msg[p];
+						}
+						editDBs.setTalk(msg.id, 'info.js', data, err => {
+							if (err) wsSend(7, 'one', 'Ошибка!', ws)
+							else wsSend(10, 'one', 'Изменено', ws);
+							//отправить всем участникам что данные изменились
+						});
+					});
+			}
+			} catch (err) {
+				validator.log(err);
+			}
+		});
+		ws.on('close', () => {
+			const c = talkClients.findIndex(a => a.ws == ws);
+			if (c != -1) talkClients.splice(c, 1);
+		});
+	}
+	}
 });
 
 function findClient(pn) {
@@ -795,6 +1143,37 @@ function findClient(pn) {
       return -1;
 }
 
+function command(text, pn) {
+	try {
+	if (/admin/.test(db.cache[pn].role)) {
+	switch (text) {
+		case '$номер локации': return db.cache[pn].game.public.lastPlace[3];
+	}}} catch (err) {
+		validator.log(`command(text, pn):\nerr: ${err}\ntext: ${text}\npn: ${pn}`);
+	}
+}
+
+function getWsOf(pn, type) {
+	const all = [];
+	switch (type) {
+		default:
+			talkClients.forEach(a => {
+				if (a.pn == pn) all.push(a.ws);
+			});
+	}
+	return all;
+}
+
+function deleteTalks(id, arr) {
+	function c(i) {
+		fs.unlink(__dirname + `/databases/talks/${id}/${i}`, err => {
+			if (err) validator.log(`id: ${id}, arr: ${arr}\n${err}`);
+		});
+	}
+	if (typeof arr == 'object') arr.forEach(c)
+	else c(arr);
+}
+
 function wsSend(type, range, data, ws) {
 	switch (range) {
 		case 'one':
@@ -804,7 +1183,17 @@ function wsSend(type, range, data, ws) {
 					data: data,
 				}));
 			} break;
+		case 'some':
+			for (let i = 0; i < ws.length; i++) {
+				if (ws[i].readyState === WebSocket.OPEN) {
+					ws[i].send(JSON.stringify({
+						type: type,
+						data: data,
+					}));
+				}
+			} break;
 		case 'inloc':
+			if (locs.cache[data[0]]) locs.cache[data[0]].lastUpdate = Date.now();
             	for(let j = 0; j < clients.length; j++) {
             		if (clients[j].loc == data[0] && clients[j].ws.readyState === WebSocket.OPEN) {
 					clients[j].ws.send(JSON.stringify({
@@ -847,15 +1236,15 @@ function serveMoons(pn, string) {
 }
 
 function serveBeforeSend(pn, update) {
-	let t, m = serveMoons(pn), size = 0.3;
+	let t, m = serveMoons(pn), size = 0.2;
 
 	if (!db.cache[pn]) editDBs.getSyncCat(pn);
 	if (Date.now() - db.cache[pn].game.last < 15 * 60000) t = 'go'
 	else if (Date.now() - db.cache[pn].game.last < 18 * 60000) t = 'doze'
 	else t = 'sleep';
 
-	if (m <= 12) size += m / 12 * 0.5
-	else size += 0.5 + (m - 12) / 188 * 0.2;
+	if (m <= 12) size += m / 12 * 0.4
+	else size += 0.4 + (m - 12) / 188 * 0.1;
 
 	if (update) return {status: t, moons: serveMoons(pn, true), size};
 	return Object.assign({},
@@ -927,7 +1316,6 @@ function getStaticFile(res, path, json, contentType) {
 		});
 	}
 }
-
 /*
 function addDevice(pn, req) {
 	if (!db.cats[pn]) return;

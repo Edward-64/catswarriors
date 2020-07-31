@@ -29,10 +29,10 @@
 				<div id="colors"></div>
 			</div>
 			<div id="c">
-				x: <input id="x" class="form" style="width: 25px;margin: 3px 6px 3px 3px;">
-				y: <input id="y" class="form" style="width: 25px; margin: 3px">
+				x: <input id="x" class="form" style="width: 25px;">
+				y: <input id="y" class="form" style="width: 25px;">
 				<div style="display: inline-block;position: relative;top: 5px;">
-					<span class="lower-text">x ∈ [-10; 160]<br>y ∈ [-5; 30]</span>
+					<span class="lower-text">x ∈ [-160; 160]<br>y ∈ [-5; 30]</span>
 				</div>
 			</div>
 			<div id="q">
@@ -53,66 +53,59 @@
 			<div class="ul">
 				Добавить недоступную зону
 				<div>
-					<input id="stop" class="form" style="width: 80%; margin: 3px;font-size: 7pt;" value="161 0000000000000000000000000000000">
-					<span class="form" style="padding:1px" onclick="
-						if (+this.innerHTML) document.getElementById('stop').value = '161 0000000000000000000000000000000'
-						else document.getElementById('stop').value = '161 1111111111111111111111111111111';
-						this.innerHTML = +this.innerHTML ? 0 : 1;
-					">0</span>
-					<button class="form" onclick="app.cw.f.addDisallow();">Добавить</button>
+					<button id="turner-moving" class="form" style="margin-top: 3px;" onclick="app.cw.f.addDisallow();">Начать</button>
 				</div>
     
                         </div>
 			<div class="ul">
 				Добавить путь
 				<div>
-					<input id="minmax" class="form" style="width: 55%; margin: 3px;">
 					<input id="move" class="form" style="width: 55%; margin: 3px;">
-					<div><button class="form" onclick="app.cw.f.addPath();">Добавить</button></div>
+					<div><button id="turner-path" class="form" onclick="app.cw.f.addPath();">Начать</button></div>
 
 				</div>
 			</div>
 			<div class="ul">
 				Текстура поля<br>
 				<button id="leftArrowTex" class="arrow-button1 an-l-arr" style="background: url(&quot;css/img/lowlightarrow.svg&quot;) no-repeat; right: 0px;" onclick="app.cw.f.listingTextures(-1)"></button>
-				<span id="hereTypeName" class="lower-text">лес</span>
+				<div id="hereTypeName" class="lower-text" style="display: inline-block;width: 40%;"></div>
 				<button id="rightArrowTex" class="arrow-button1 an-r-arr" style="background: url(&quot;css/img/lowarrow.svg&quot;) no-repeat; transform: scale(-1); left: 0px;" onclick="app.cw.f.listingTextures(1)"></button>
 			</div>
 		</div>
 	</div>
 	<div style="text-align: center; margin: 10px;">
-		<button class="form" style="font-size: 15pt;" onclick="app.cw.f.createLoc();">Создать</button>
+		<button id="to-server" class="form" style="font-size: 15pt;">Создать</button>
 	</div>
 	<div id="viewer">
-		<div  style="height: 5%"></div>
-		<div id="sky" style="height: 50%; width: 100%; background: #97c0d9"></div>
-		<div id="nearloc" style="height: 10%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;); opacity: 0.7"></div>
-		<div id="headloc" style="position: relative;height: 30%; width: 100%; background: url(&quot;/img/textures/0.svg&quot;);"></div>
+		<div  style="height: 8%"></div>
+		<div id="sky" style="height: 48%; width: 100%; background: #97c0d9"></div>
+		<div id="nearloc" style="height: 8%; width: 100%; background-image: url(&quot;/img/textures/0.svg&quot;); opacity: 0.7; background-position-x: 200px;"></div>
+		<div id="headloc" style="position: relative;height: 28%; width: 100%; background-image: url(/img/textures/0.svg);">
+			<div style="width: 100%;height: 100%;position: absolute;"></div>
+			<div id="mouser" style="width: 100%;height: 100%;z-index: 200;position: relative;"></div>
+		</div>
 	</div>
 	<div class="cw-setting">
 		<div id="addedObj" class="cw-add">
 			<p>Добавленные объекты</p>
+			<div></div>
 		</div>
 		<div id="addedPaths" class="cw-add">
 			<p>Добавленные пути</p>
+			<div></div>
 		</div>
 		<div id="addedStops" class="cw-add">
 			<p>Добавленные недоступные зоны</p>
+			<div></div>
 		</div>
 	</div>
 </div>
 <div id="editExsisLocation" style="display: none;text-align: center;">
-        <div class="cw-setting">
-                <div class="cw-part-of-setting">
-                        <div class="ul">
-                                Добавить путь в локацию под номером <input id="editedLoc" class="form" style="width: 30px; margin: 3px;">
-                                <div>
-                                        <input id="editedminmax" class="form" style="width: 55%; margin: 3px;">
-                                        <input id="editedmove" class="form" style="width: 55%; margin: 3px;">
-                                        <div><button class="form" onclick="app.cw.f.editedaddPath();">Добавить</button></div>
-                                </div>
-                        </div>
-                </div>
-        </div>
+	<div>Выберите локацию. Поиск различает не только названия локаций, но и их номера.</div>
+	<div>Поиск <input class="form" style="width: 50%;margin: 5px;" oninput="app.cw.f.searchingLocs(this.value);"></div>
+	<form name="list-of-locs" class="list-of-locs-cw"></form>
+	<div>
+		<button class="form head-text" style="margin: 5px;" onclick="app.cw.f.chooseLoc();">Выбрать</button>
+	</div>
 </div>
 </div>

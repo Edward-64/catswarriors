@@ -1,9 +1,10 @@
 'use strict'
 const HOST = location.origin.replace(/^http/, 'ws'),
-	headloc = document.querySelector('#headloc');
+	headloc = document.querySelector('#headloc'),
+	req = new XMLHttpRequest();
 let   x = Math.floor(headloc.clientWidth / 160),
 	y = Math.floor(headloc.clientHeight / 30),
-	ws = new WebSocket(HOST), PN = null;
+	ws = new WebSocket(HOST, 'play'), PN = null;
 const	details = document.getElementById('details'),
 	cats = document.getElementById('cats'),
 	CATS = {},
@@ -246,22 +247,22 @@ window.onresize = () => {
 }
 
 function addCat(pn, chunk) {
-	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 70,
+	const div = document.createElement('div'); let scale = 'scale(-1, 1)', widthCat = 40 * CATS[pn].size,
 		actions = '0px';
-	if (chunk[2]) { scale = 'scale(1)'; widthCat = 200; }
+	if (chunk[2]) { scale = 'scale(1)'; widthCat = 108 * CATS[pn].size; }
 
 	if (CATS[pn].status != 'go') actions = -440 * CATS[pn].size + 'px'
 	else if (CATS[pn].action == 1) actions = -220 * CATS[pn].size + 'px';
 
 	div.innerHTML = `<div></div><div style="transform: ${scale}; background: url(${CATS[pn].skin});` +
-	`background-position-x: ${actions};` +
+	`background-position-x: ${actions}; background-repeat: no-repeat;` +
 	`width:${220 * CATS[pn].size + 'px'};height:${140 * CATS[pn].size + 'px'}; background-size:1200%;"></div>`;
 
 	div.classList.add('cat');
 	div.id = `cat${pn}`;
 	div.style.left = `${chunk[0] * x - widthCat * CATS[pn].size}px`;
 	div.style.bottom = `${chunk[1] * y}px`;
-	div.style.zIndex = 100 - chunk[1];
+	div.style.zIndex = Math.floor(100 - chunk[1]);
 
 	div.addEventListener('mouseover', () => {
 		app.fillInfoAsCat(pn);
@@ -313,10 +314,10 @@ function changeOrient(pn, o, widthCat) {
 	const cat = document.getElementById(`cat${pn}`); o = +o;
 	if (o) {
 		cat.children[1].style.transform = 'scale(1)';
-		if (widthCat) return 200 * CATS[pn].size;
+		if (widthCat) return 108 * (CATS[pn].size + 0.3);
 	} else {
 		cat.children[1].style.transform = 'scale(-1, 1)';
-		if (widthCat) return 70 * CATS[pn].size;
+		if (widthCat) return 40 * (CATS[pn].size + 0.3);
 	}
 }
 
@@ -353,12 +354,19 @@ function animation(pn, s) {
 	};
 }
 ws.onopen = () => {
-	ws.send(JSON.stringify({type: 102, msg: { token: document.cookie }}));
+      req.open('GET', '/getcookie', true);
+      req.send();
+      req.onload = () => {
+            const {res, cookie, alias} = JSON.parse(req.response);
+            if (res) app.send(102, `auth=${cookie}; alias=${alias}`)
+      	else app.displayError('Не удалось подключиться к серверу');
+      }
 }
 
 ws.onmessage = (e) => {
 	if (ws.readyState === WebSocket.OPEN) {
 		let {type, data} = JSON.parse(e.data);
+		console.log(type, data);
 		switch (type) {
 			case 2: {
 				PN = data.pn; CATS[PN] = {};
@@ -384,11 +392,13 @@ ws.onmessage = (e) => {
 					CATS[data.loc.fill[j].pn].listingframes = null;
 					CATS[data.loc.fill[j].pn].steping = null;
 					addCat(data.loc.fill[j].pn, data.loc.fill[j].lastPlace);
-//					if (data.loc.fill[j].action > 0) app.runTheActionMyself[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
-//					else if (data.loc.fill[j].action < 0) app.runTheActionWith[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
+					if (data.loc.fill[j].pn == PN) {
+						if (data.loc.fill[j].action > 0) app.runTheActionMyself[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
+						else if (data.loc.fill[j].action < 0) app.runTheActionWith[data.loc.fill[j].action].doIt(data.loc.fill[j].pn);
+					}
 				}
-				headloc.style.background = `url('${data.loc.surface}')`;
-				app.nearloc.style.background = `url('${data.loc.surface}')`;
+				headloc.style.backgroundImage = `url('${data.loc.surface}')`;
+				app.nearloc.style.backgroundImage = `url('${data.loc.surface}')`;
 				app.nearloc.style.opacity = '.7';
 				l = data.loc.landscape.length;
 				for(let j = 0; j < l; j++) {
@@ -456,14 +466,17 @@ ws.onmessage = (e) => {
 					delete CATS[data];
 				} break;
 			  case 7: app.notification(data); break;
-			  case 14:
+			  case 14: {
+				const c = document.getElementById(`cat${data.pn}`).children[1].style;
 				if (data.s === 'go') {
 					if (data.pn == PN) document.getElementById('sleeping').style.display = 'none';
-					document.getElementById(`cat${data.pn}`).children[1].style.backgroundPositionX = '0px'
+					if (CATS[data.pn].action == 1) c.backgroundPositionX = -220 * CATS[data.pn].size + 'px'
+					else c.backgroundPositionX = '0px'
 				} else {
 					if (data.pn == PN) document.getElementById('sleeping').style.display = 'block';
-					document.getElementById(`cat${data.pn}`).children[1].style.backgroundPositionX = -440 * CATS[data.pn].size + 'px';
+					c.backgroundPositionX = -440 * CATS[data.pn].size + 'px';
 				}
+			}
 		}
 	}
 }
@@ -476,6 +489,7 @@ document.getElementById('sleeping').addEventListener('click', () => {
 });
 headloc.addEventListener('mousedown', (e) => {
 	const excess = document.querySelector('#sky').clientHeight + document.querySelector('#nearloc').clientHeight;
+	console.log(serveChunk([e.pageX, e.pageY - excess]));
 	app.send(103, { value: serveChunk([e.pageX, e.pageY - excess]) });
 });
 

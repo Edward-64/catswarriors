@@ -2,7 +2,7 @@
 app.cw = {
 	next: {
 		obj: {v: 0},
-		tex: {v: 0},
+		tex: {v: -1},
 		clr: {v: 100},
 	},
 	f: {
@@ -20,12 +20,14 @@ app.cw = {
 }
 
 {
-	const dataToS = {objs: [{}], paths: [{}], disa: []};
+	const dataToS = {objs: [{}], paths: [{}], disa: {}},
+		edit = {};
 	let	obj,
-		colors, headloc, addedObj, addedPaths, addedStops, cr_add, adder, creater,
+		colors, headloc, mouser, addedObj, addedPaths, addedStops, cr_add, adder, creater,
 		nowposition = 0, nowpsPaths = 0,
 		locsnames, objsExNames, objsNames, texsNames,
-		x, y;
+		x, y,
+		bloks = 0;
 	function computeXY() {
 		x = headloc.clientWidth / 160;
 		y = headloc.clientHeight / 30;
@@ -41,8 +43,8 @@ app.cw = {
 			name = document.getElementById('hereTypeName');
 		app.animationArrows(l, r, p, app.cw.next.tex, texsNames.length - 1, () => {
 			name.innerHTML = texsNames[app.cw.next.tex.v].name;
-			headloc.style.background = `url(${texsNames[app.cw.next.tex.v].texture})`;
-			document.getElementById('nearloc').style.background = `url(${texsNames[app.cw.next.tex.v].texture})`;
+			headloc.parentElement.style.backgroundImage = `url(${texsNames[app.cw.next.tex.v].texture})`;
+			document.getElementById('nearloc').style.backgroundImage = `url(${texsNames[app.cw.next.tex.v].texture})`;
 			document.getElementById('nearloc').style.opacity = '.7';
 			dataToS.texs = texsNames[app.cw.next.tex.v].texture;
 		}, 'low');
@@ -63,70 +65,204 @@ app.cw = {
 			obj.data = objsExNames[app.cw.next.obj.v];
 		});
 	}
+	app.cw.f.preDraw = function(style, chunk) {
+		const div = document.createElement('div');
+
+		div.style.position = 'absolute';
+		div.style.width = x + 'px';
+		div.style.height = y + 'px';
+		div.style.left = chunk[0] * x + 'px';
+		div.style.bottom = chunk[1] * y + 'px';
+		div.style.opacity = '.7';
+		div.style.zIndex = style.z;
+		div.style.background = style.color;
+
+		return div;
+	}
+	app.cw.f.draw = function(style, shell, func) {
+		let	stat = 0; console.log(mouser);
+		mouser.onclick = () => {
+			if (stat == 0) stat = 1
+			else stat = 0;
+		}
+		mouser.onmousemove = (e) => {
+			if (stat == 1) {
+				stat = 0;
+				const chunk = [Math.floor(e.offsetX / x), 30 - Math.floor(e.offsetY / y)];
+
+				if (chunk[0] < 0) chunk[0] = 0;
+				if (chunk[1] < 0) chunk[1] = 0;
+				if (chunk[1] > 30) chunk[1] = 30;
+
+				if (func(chunk)) return stat = 1;
+				shell.appendChild(app.cw.f.preDraw(style, chunk));
+				stat = 1;
+			}
+		}
+
+	}
+	app.get = function() {
+		return {dataToS, locsnames, texsNames, bloks};
+	}
 	app.cw.f.addDisallow = function() {
-		dataToS.disa[161] = 1;
+		const shell = headloc.appendChild(document.createElement('div')),
+			local = {},
+			m = document.getElementById('turner-moving'),
+			p = document.getElementById('turner-path');
+		m.textContent = 'Закончить и добавить';
+		m.onclick = () => {
+			m.textContent = 'Начать';
+			m.onclick = app.cw.f.addDisallow;
+			p.style.display = 'inline-block';
+			mouser.onclick = null;
+			mouser.onmousemove = null;
+
+			const b = document.createElement('button'),
+				shellNewDisa = document.createElement('div'),
+				clr = document.createElement('div');
+
+			clr.style.width = '20px';
+			clr.style.height = '20px';
+			clr.style.background = `rgb(${app.cw.next.clr.v}, 0, 0)`;
+			clr.style.display = 'inline-block';
+			shellNewDisa.style.margin = '3px';
+
+			shellNewDisa.appendChild(clr);
+			shellNewDisa.style.display = 'inline-flex';
+
+			b.classList.add('form');
+			b.style.marginLeft = '5px';
+			b.textContent = 'удалить';
+			b.onclick = () => {
+				shellNewDisa.remove();
+				shell.remove();
+				for (let p in local) {
+					if (!local.hasOwnProperty(p)) continue;
+					dataToS.disa[p] = dataToS.disa[p] ^ local[p];
+					if (dataToS.disa[p] == 0) delete dataToS.disa[p];
+				}
+			}
+			shellNewDisa.appendChild(b);
+			addedStops.appendChild(shellNewDisa);
+		}
+		p.style.display = 'none';
 		app.cw.next.clr.v += 20;
-		const stop = document.getElementById('stop').value.match(/\d+/g),
-			b = document.createElement('button'),
-			shellNewDisa = document.createElement('div'),
-			clr = document.createElement('div'),
-			div = document.createElement('div');
-		if (stop.length > 2) return;
-		stop[0] = +stop[0]; stop[1] = Number.parseInt(stop[1], 2);
-		if (stop[1] >= Math.pow(2, 31)) return alert('Второе значение должно быть меньше, чем 2^31');
-		if (stop[0] < 0 || stop[0] > 161) return alert('Первое значение должно принадлежать [0; 161]')
-		else if (!(stop[0] + 1)) return alert('Одно из значений — не число');
-		if (!stop[1] || stop[0] == 161) return;
-
-		dataToS.disa[stop[0]] = stop[1];
-
 		if (app.cw.next.clr.v > 255) app.cw.next.clr.v = 100;
 
-		for (let i = 0; i < 30; i++) {
-			if (stop[1] & Math.pow(2,i)) {
-				const d = document.createElement('div');
-				d.style.position = 'absolute';
-				d.style.zIndex = 104;
-				d.style.width = x + 'px';
-				d.style.height = y + 'px';
-				d.style.left = stop[0] * x + 'px';
-				d.style.bottom = i * y + 'px';
-				d.style.background = `rgb(${app.cw.next.clr.v}, 0, 0)`;
-				d.style.opacity = '.8';
-				headloc.appendChild(div);
-				div.appendChild(d);
-			}
+		app.cw.f.draw({color: `rgb(${app.cw.next.clr.v}, 0, 0)`, z: 104}, shell, chunk => {
+			if (dataToS.disa[chunk[0]] >> chunk[1] & 1) return true;
+			local[chunk[0]] = local[chunk[0]] | 1 << chunk[1];
+			dataToS.disa[chunk[0]] = dataToS.disa[chunk[0]] | 1 << chunk[1];
+		});
+	}
+	app.cw.f.renderListOfLocs = function(locs) {
+		if (bloks & 1) return setTimeout(() => app.cw.f.renderListOfLocs(locs), 200);
+		bloks |= 1;
+		const form = document.forms['list-of-locs'];
+		if (Object.keys(locs).length == 0) form.innerHTML = 'Ничего не найдено';
+		else form.innerHTML = '';
+
+		for (let p in locs) {
+			if (!locs.hasOwnProperty(p)) continue;
+			const d = document.createElement('div');
+			d.classList.add('ul');
+			d.innerHTML = `<input type="radio" name="loc" value="${p}">${locs[p]} [${p}]`;
+			form.appendChild(d);
 		}
-
-		clr.style.width = '20px';
-		clr.style.height = '20px';
-		clr.innerHTML = `<span class="lower-text">${stop[0]}</span>`;
-		clr.style.background = `rgb(${app.cw.next.clr.v}, 0, 0)`;
-		clr.style.display = 'inline-block';
-		shellNewDisa.style.margin = '2.5px';
-		shellNewDisa.appendChild(clr);
-		shellNewDisa.style.display = 'inline-block';
-
-		b.classList.add('form');
-		b.style.marginLeft = '5px';
-		b.textContent = 'удалить';
-		b.onclick = () => {
-			shellNewDisa.remove();
-			div.remove();
-			dataToS.disa[stop[0]] = null;
-			if (addedStops.children.length == 1) {
-				document.getElementById('stop').value = '161 0000000000000000000000000000000';
-				dataToS.disa[161] = null;
+		if (bloks & 1) bloks ^= 1;
+	}
+	app.cw.f.searchingLocs = function(input) {
+		if (bloks & 1) return setTimeout(() => app.cw.f.searchingLocs(input), 200);
+		bloks |= 1;
+		if (+input == 0) app.cw.f.renderListOfLocs(locsnames)
+		else if (+input) {
+			const keys = Object.keys(locsnames).filter(i => {if (i.startsWith(input)) return i}),
+				local = {};
+			keys.forEach(i => local[i] = locsnames[i]);
+			app.cw.f.renderListOfLocs(local);
+		} else {
+			const reg = new RegExp(input, 'i'),
+				local = {};
+			for (let p in locsnames) {
+				if (!locsnames.hasOwnProperty(p)) continue;
+				if (reg.test(locsnames[p])) local[p] = locsnames[p];
 			}
-			localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //delete
+			app.cw.f.renderListOfLocs(local);
 		}
-		shellNewDisa.appendChild(b);
-		addedStops.appendChild(shellNewDisa);
-		localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //delete
+		if (bloks & 1) bloks ^= 1;
+	}
+	app.cw.f.chooseLoc = function() {
+		const form = document.forms['list-of-locs'].elements;
+		let	choose;
+		for (let i = 0; i < form.length; i++) {
+			if (form[i].checked) choose = +form[i].value;
+		}
+		if (choose) {
+			edit.editedLoc = choose;
+			req.open('GET', `/r/getloc/${choose}`, true);
+			req.send();
+			req.onload = () => {
+				const {res, msg} = JSON.parse(req.responseText);
+				if (res) {
+					dataToS.objs = [{}];
+					dataToS.paths = [{}];
+					dataToS.disa = {};
+					nowposition = 0;
+					nowpsPaths = 0;
 
+					const texs = texsNames.findIndex(i => i.texture == msg.texture);
+					app.cw.next.tex.v = texs - 1;
+					app.cw.f.listingTextures(1);
+
+					document.getElementById('nameOfLoc').value = msg.name;
+					document.getElementById('editExsisLocation').style.display = 'none';
+					document.getElementById('createNewLocation').style.display = 'block';
+					computeXY();
+
+					msg.landscape.forEach(i => {
+						const toViever = document.createElement('img'),
+							toAdded = document.createElement('img');
+						toViever.src = i.texture;
+						toAdded.src = i.texture;
+
+						dataToS.objs[nowposition] = i;
+						dataToS.objs[nowposition].old = true;
+
+						app.cw.f.preAddObj({
+							width: i.width / 2 + 'px',
+							height: i.height / 2 + 'px',
+							z: i.z || 100 - i.chunk[1],
+							chunk: i.chunk
+						}, [toViever, toAdded]);
+					});
+
+					msg.paths.forEach(i => {
+						let shell = headloc.appendChild(document.createElement('div'));
+
+						dataToS.paths[nowpsPaths] = i;
+
+						for (let k = 0; k <= 160; k++) {
+						if (i[k]) {
+						for (let j = 0; j <= 30; j++) {
+							if (i[k] >> j & 1) shell.appendChild(app.cw.f.preDraw({color: 'deeppink', z: 102}, [k, j]));
+						}}}
+
+//						app.cw.f.addTextToPath(shell);
+						app.cw.f.preAddPath(shell, i.to[3]);
+					});
+
+					console.log(msg);
+				} else {
+					app.displayError('Не удалось загрузить локацию: ' + msg);
+				}
+			}
+		} else alert('Локация не выбрана');
 	}
 	app.cw.f.createNewLocation = function() {
 		resizeWindow(200, 0);
+		const s = document.getElementById('to-server');
+		s.onclick = app.cw.f.createLoc;
+		s.textContent = 'Создать';
 		document.getElementsByTagName('button')[1].style.backgroundColor = '#976b3c';
 		document.getElementsByTagName('button')[2].style.backgroundColor = '#bb8b54';
 		document.getElementById('editExsisLocation').style.display = 'none';
@@ -135,76 +271,129 @@ app.cw = {
 	}
 	app.cw.f.editExsisLocation = function() {
 		resizeWindow(200, 0);
+		const s = document.getElementById('to-server');
+		s.onclick = app.cw.f.editLoc;
+		s.textContent = 'Изменить';
+		headloc.innerHTML = ''; addedPaths.innerHTML = '';
+		addedObj.innerHTML = ''; addedStops.innerHTML = '';
 		document.getElementsByTagName('button')[2].style.backgroundColor = '#976b3c';
 		document.getElementsByTagName('button')[1].style.backgroundColor = '#bb8b54';
 		document.getElementById('createNewLocation').style.display = 'none';
 		document.getElementById('editExsisLocation').style.display = 'block';
-		computeXY();
+		app.cw.f.renderListOfLocs(locsnames);
 	}
-	app.cw.f.addPath = function() {
-		const minmax = document.getElementById('minmax').value.match(/\d+/g).map(i => +i),
-			move = document.getElementById('move').value.match(/\d+/g).map(i => +i),
-			div = document.createElement('div'),
-			shellNewPath = document.createElement('div'),
+	app.cw.f.preAddPath = function(shell, loc) {
+		const	shellNewPath = document.createElement('div'),
 			b = document.createElement('button'),
 			n = nowpsPaths;
-		if (minmax[0] > minmax[2] || minmax[1] > minmax[3]) { alert('Указывайте координаты в порядке возрастания'); return; }
-		if (minmax[0] < 0 || minmax[0] > 160 || minmax[1] < 0 || minmax[1] > 30 ||
-		    minmax[2] < 0 || minmax[2] > 160 || minmax[3] < 0 || minmax[3] > 30) {
-			alert('Координаты пути выходят за пределы допустимого диапазона'); return;
-		} else if (!(minmax[0] + 1) || !(minmax[1] + 1) || !(minmax[2] + 1) || !(minmax[3] + 1)) {
-			alert('Введённые координаты пути не являются числом');
-			return;
-		}
-		if (move[0] < 20 || move[0] > 140 || move[1] < 0 || move[1] > 30) {
-			alert('Координаты позиции игрока после перемещения выходят за пределы допустимого диапазона');
-			return;
-		} else if (!(move[0] + 1) || !(move[1] + 1)) {
-			alert('Введённая позиция игрока после перемещения не являются числом');
-			return;
-		}
-		if (!(move[2] == 0 || move[2] == 1)) { alert('Некорректная ориентация после перемещения'); return; }
-		if (!locsnames[move[3]]) { alert('Указанной локации не существует'); return; }
 
-		dataToS.paths[n].to = move;
-		dataToS.paths[n].minChunk = [minmax[0], minmax[1]];
-		dataToS.paths[n].maxChunk = [minmax[2], minmax[3]];
-
-		div.style.position = 'absolute';
-		div.style.zIndex = 101;
-		div.style.width = `${Math.abs(minmax[2] - minmax[0]) * x}px`;
-		div.style.height = `${Math.abs(minmax[3] - minmax[1]) * y}px`;
-		div.style.left = `${minmax[0] * x}px`;
-		div.style.bottom = `${minmax[1] * y}px`;
-		div.style.background = 'deeppink';
-		div.style.opacity = '.4';
-		div.innerHTML = `<div style="font-size: 6pt;">Путь №${n}</div>`
-		headloc.appendChild(div);
-
-		shellNewPath.style.marginBottom = '5px';
-		shellNewPath.innerHTML = `<div class="lower-text">Путь №${n} ведет в ${locsnames[move[3]]}</div>`;
+		shellNewPath.style.marginBottom = '3px';
+		shellNewPath.innerHTML = `<div class="lower-text">№${n} ведет в ${locsnames[loc]} [${loc}]</div>`;
 		b.classList.add('form');
 		b.style.marginTop = '3px';
 		b.textContent = 'удалить';
 		b.onclick = () => {
 			shellNewPath.remove();
-			div.remove();
+			shell.remove();
 			dataToS.paths[n] = null;
-			localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //удалить
 		}
 		shellNewPath.appendChild(b);
 		addedPaths.appendChild(shellNewPath);
-		localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //удалить
 		dataToS.paths.push({});
 		++nowpsPaths;
+
+		let several = [0, 0]; const k = 10;
+		for (let i = 0; i < k; i++) {
+			const c = shell.children[Math.floor(Math.random() * shell.children.length)];
+			several[0] += +c.style.left.match(/\d+/)[0];
+			several[1] += +c.style.bottom.match(/\d+/)[0];
+		}
+		const d = document.createElement('div');
+		d.style.position = 'absolute';
+		d.style.zIndex = 103;
+		d.style.left = several[0] / k + 'px';
+		d.style.bottom = several[1] / k + 'px';
+		d.style.background = 'rgb(255, 20, 147, .4)';
+		d.textContent = `№${n}`;
+		shell.appendChild(d);
+	}
+
+	app.cw.f.addPath = function() {
+		let move = document.getElementById('move').value.match(/\d+/g);
+
+		if (!move) return alert('Введите координаты позиции игрока после перемещения');
+		move = move.map(i => +i);
+		if (move[0] < 10 || move[0] > 150 || move[1] < 0 || move[1] > 30)
+			return alert('Координаты позиции игрока после перемещения выходят за пределы допустимого диапазона')
+		else if (!(move[0] + 1) || !(move[1] + 1))
+			return alert('Введённые данные не являются числом');
+		if (!(move[2] == 0 || move[2] == 1)) return alert('Некорректная ориентация после перемещения');
+		if (!locsnames[move[3]]) return alert('Указанной локации не существует');
+
+		const	m = document.getElementById('turner-moving'),
+			p = document.getElementById('turner-path'),
+			shell = headloc.appendChild(document.createElement('div'));
+
+		p.textContent = 'Закончить и добавить';
+		p.onclick = () => {
+			p.textContent = 'Начать';
+			p.onclick = app.cw.f.addPath;
+			m.style.display = 'inline-block';
+
+			mouser.onclick = null;
+			mouser.onmousemove = null;
+
+			app.cw.f.preAddPath(shell, move[3]);
+		}
+		m.style.display = 'none';;
+
+		dataToS.paths[nowpsPaths].to = move;
+		app.cw.f.draw({color: 'deeppink', z: 102},
+				   shell, chunk => {
+			if (dataToS.paths[nowpsPaths][chunk[0]] >> chunk[1] & 1) return true;
+			dataToS.paths[nowpsPaths][chunk[0]] = dataToS.paths[nowpsPaths][chunk[0]] | 1 << chunk[1];
+		});
+	}
+	app.cw.f.preAddObj = function(style, objs) {
+		let	newobj = objs[0],
+			newobjadd = objs[1],
+			shellNewObj = document.createElement('div'),
+			b = document.createElement('button'),
+			n = nowposition;
+
+		newobj.style.position = 'absolute';
+		newobj.style.zIndex = style.z;
+		newobj.style.width = style.width;
+		newobj.style.height = style.height;
+		newobj.style.left = style.chunk[0] * x + 'px';
+		newobj.style.bottom = style.chunk[1] * y + 'px';
+		headloc.appendChild(newobj);
+
+		newobjadd.style.width = '30px';
+		newobjadd.style.height = '20px';
+		newobjadd.style.marginLeft = '3px';
+		shellNewObj.style.display = 'inline-block';
+		shellNewObj.appendChild(newobjadd);
+
+		b.classList.add('form');
+		b.textContent = 'удалить';
+		b.onclick = () => {
+			shellNewObj.remove();
+			newobj.remove();
+			dataToS.objs[n] = null;
+		}
+		shellNewObj.appendChild(b);
+		addedObj.appendChild(shellNewObj);
+		if (dataToS.objs[n].old) dataToS.objs.push({})
+		else dataToS.objs.push(Object.assign({}, dataToS.objs[n]));
+		++nowposition;
 	}
 	app.cw.f.addObj = function() {
 		if (!obj.contentDocument) return;
 		const createX = +document.getElementById('x').value,
 			createY = +document.getElementById('y').value,
 			createZ = +document.getElementById('z').value,
-			createS = +(document.getElementById('size').value.replace(/,/, '.')) || 1,
-			n = nowposition;
+			createS = +(document.getElementById('size').value.replace(/,/, '.')) || 1;
 		if (createX < -160 || createX > 160 || createY < -5 || createY > 30 || createZ && (createZ < 1 || createZ >= 120)) {
 			alert('Координаты выходят за пределы допустимого диапазона');
 			return;
@@ -212,59 +401,29 @@ app.cw = {
 			alert('Введённые данные не являются целым числом');
 			return;
 		}
-		dataToS.objs[n].chunk = [createX, createY];
-		dataToS.objs[n].s = createS;
-		if (createZ) dataToS.objs[n].z = createZ
-		else dataToS.objs[n].z = null;
+		dataToS.objs[nowposition].chunk = [createX, createY];
+		dataToS.objs[nowposition].s = createS;
+		if (createZ) dataToS.objs[nowposition].z = createZ
+		else dataToS.objs[nowposition].z = undefined;
 
-		if (app.cw.objIs === 'new') dataToS.objs[n].url = objsNames[app.cw.next.obj.v].url
+		if (app.cw.objIs === 'new') dataToS.objs[nowposition].url = objsNames[app.cw.next.obj.v].url
 		else {
-			dataToS.objs[n].noserve = objsExNames[app.cw.next.obj.v];
-			if (dataToS.objs[n].colors) {
-				delete dataToS.objs[n].colors;
-				delete dataToS.objs[n].d;
+			dataToS.objs[nowposition].noserve = objsExNames[app.cw.next.obj.v];
+			if (dataToS.objs[nowposition].colors) {
+				delete dataToS.objs[nowposition].colors;
+				delete dataToS.objs[nowposition].d;
 			}
 		}
 
-		localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //delete
-
-		let	newobj = obj.contentDocument.all[0].cloneNode(true),
-			newobjadd = obj.contentDocument.all[0].cloneNode(true),
-			shellNewObj = document.createElement('div'),
-			b = document.createElement('button');
-
-		newobj.style.position = 'absolute';
-		newobj.style.zIndex = createZ || 100 - dataToS.objs[n].chunk[1];
-		newobj.style.width = `${obj.contentDocument.all[0].attributes.width.value / 2 * dataToS.objs[n].s}px`;
-		newobj.style.height = `${obj.contentDocument.all[0].attributes.height.value / 2 * dataToS.objs[n].s}px`;
-		newobj.style.left = `${dataToS.objs[n].chunk[0] * x}px`;
-		newobj.style.bottom = `${dataToS.objs[n].chunk[1] * y}px`;
-		headloc.appendChild(newobj);
-
-		newobjadd.style.width = '100px';
-		newobjadd.style.height = '20px';
-		shellNewObj.style.display = 'inline-block';
-		shellNewObj.appendChild(newobjadd);
-/*		b.classList.add('form');
-		b.style.marginRight = '3px';
-		b.textContent = 'редактировать';
-		b.onclick = () => {
-			//редактируем
-		}
-		shellNewObj.appendChild(b);
-		b = document.createElement('button'); */
-		b.classList.add('form');
-		b.textContent = 'удалить';
-		b.onclick = () => {
-			shellNewObj.remove();
-			newobj.remove();
-			dataToS.objs[n] = null;
-			localStorage.setItem('dataToSCW', JSON.stringify(dataToS)); //delete
-		}
-		shellNewObj.appendChild(b);
-		addedObj.appendChild(shellNewObj);
-		dataToS.objs.push(Object.assign({}, dataToS.objs[n]))
-		++nowposition;
+		app.cw.f.preAddObj({
+			width: `${obj.contentDocument.all[0].attributes.width.value / 2 * createS}px`,
+			height: `${obj.contentDocument.all[0].attributes.height.value / 2 * createS}px`,
+			z: createZ || 100 - createY,
+			chunk: [createX, createY]
+		},
+			[obj.contentDocument.all[0].cloneNode(true),
+			 obj.contentDocument.all[0].cloneNode(true)]
+		);
 	}
 	app.cw.f.applyColors = function() {
 		const l = document.forms.color.length - 1, stack = [];
@@ -331,8 +490,6 @@ app.cw = {
 				locsnames = data.locsnames; objsExNames = data.objsExNames;
 				objsNames = data.objsNames; texsNames = data.texsNames;
 
-				dataToS.disa.length = 162; dataToS.disa[161] = null;
-
 				addQue('Ширина и высота игрового поля условно делится на 160 и 30 частей соответственно. Следовательно, координаты (0, 0) расположат ' +
 				'объект в нижнем левом углу, а (160, 30) в правом верхнем.', document.getElementById('c'));
 				addQue('Значение больше нуля увеличивает объект, а меньше нуля — уменьшает его.<br>'+
@@ -345,11 +502,15 @@ app.cw = {
 				document.getElementById('viewer').style.width = `${document.querySelector('html').clientWidth / 2}px`;
 				document.getElementById('viewer').style.height = `${document.querySelector('html').clientHeight / 2}px`;
 
-				headloc = document.querySelector('#headloc'); addedObj = document.getElementById('addedObj');
-				addedPaths = document.getElementById('addedPaths'); addedStops = document.getElementById('addedStops');
+				addedObj = document.getElementById('addedObj').children[1];
+				addedPaths = document.getElementById('addedPaths').children[1];
+				addedStops = document.getElementById('addedStops').children[1];
+				headloc = document.querySelector('#headloc').children[0];
+				obj = document.getElementById('obj'); mouser = document.getElementById('mouser');
 				cr_add = document.getElementById('cr_add'); adder = document.getElementById('adder');
 				creater = document.getElementById('creater');
-				obj = document.getElementById('obj');
+
+				app.cw.f.listingTextures(1);
 
 				document.getElementById('preload').style.display = 'none';
 				document.getElementById('content').style.display = 'block';
@@ -357,68 +518,33 @@ app.cw = {
 		}
 	}
 
-	app.cw.f.editedaddPath = function() {
-		const minmax = document.getElementById('editedminmax').value.match(/\d+/g).map(i => +i),
-			move = document.getElementById('editedmove').value.match(/\d+/g).map(i => +i),
-			n = +document.getElementById('editedLoc').value;
-		if (!locsnames[n]) return alert('Такой локации не существует');
-		if (minmax[0] > minmax[2] || minmax[1] > minmax[3]) { alert('Указывайте координаты в порядке возрастания'); return; }
-		if (minmax[0] < 0 || minmax[0] > 160 || minmax[1] < 0 || minmax[1] > 30 ||
-		    minmax[2] < 0 || minmax[2] > 160 || minmax[3] < 0 || minmax[3] > 30) {
-			alert('Координаты пути выходят за пределы допустимого диапазона'); return;
-		} else if (!(minmax[0] + 1) || !(minmax[1] + 1) || !(minmax[2] + 1) || !(minmax[3] + 1)) {
-			alert('Введённые координаты пути не являются числом');
-			return;
-		}
-		if (move[0] < 20 || move[0] > 140 || move[1] < 0 || move[1] > 30) {
-			alert('Координаты позиции игрока после перемещения выходят за пределы допустимого диапазона');
-			return;
-		} else if (!(move[0] + 1) || !(move[1] + 1)) {
-			alert('Введённая позиция игрока после перемещения не являются числом');
-			return;
-		}
-		if (!(move[2] == 0 || move[2] == 1)) { alert('Некорректная ориентация после перемещения'); return; }
-		if (!locsnames[move[3]]) { alert('Указанной локации после перемещения не существует'); return; }
+	app.cw.f.editLoc = function() {
+		const areYouReady  = confirm("Вы уверены, что хотите изменить локацию?");
+		if (!areYouReady) return;
 
-		const toServer = {
-			path: {
-				minChunk: [minmax[0], minmax[1]],
-				maxChunk: [minmax[2], minmax[3]],
-				to: move
-			}, n
-		}
-		post(toServer, '/addpath');
+		dataToS.name = document.getElementById('nameOfLoc').value;
+		dataToS.loc = edit.editedLoc;
+
+		post(dataToS, '/edtloc');
 		req.onload = () => {
 			const {res, msg} = JSON.parse(req.responseText);
-			if (req.status !== 200) {
-				//неудача
-			} else if (res == 0) {
-				alert('Путь не добавлен: ' + msg);
-			} else if (res == 1) {
-				alert('Путь добавлен');
+			if (res) {
+				app.displayDone('Локация изменена');
+			} else {
+				app.displayError('Локация не изменена: ' + msg);
 			}
 		}
 	}
-
 
 	app.cw.f.createLoc = function() {
 		const areYouReady  = confirm("Вы уверены, что хотите создать локацию?");
 		if (!areYouReady) return;
 		dataToS.name = document.getElementById('nameOfLoc').value;
-//		dataToS.objs.pop(); dataToS.paths.pop();
-		console.log(dataToS);
-//		localStorage.setItem('dataToSCW', JSON.stringify(dataToS));
 		post(dataToS, '/crnewloc');
 		req.onload = () => {
 			const {res, msg} = JSON.parse(req.responseText);
-			if (req.status !== 200) {
-				//неудача
-			} else if (res == 0) {
-				alert('Локация не создана: ' + msg);
-			} else if (res == 1) {
-				alert('Локация создана');
-//				console.log(res.data);
-			}
+			if (res) app.displayDone('Локация создана')
+			else app.displayError('Локация не создана: ' + msg);
 		}
 	}
 }

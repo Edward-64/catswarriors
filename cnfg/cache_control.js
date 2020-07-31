@@ -6,31 +6,46 @@ function cacheControl(req, res, path) {
 			etag: '0.0.1',
 			age: 604800
 		},
-/*		['/css/']: {
+		['/css/']: {
 			include: true,
-			etag: '0.0.1',
+			etag: '0.0.2',
 			age: 86400
 		},
-//		['/']: {
-//			include: true,
-//			etag: '0.0.1',
-//			age: 604800
-//		},
 		['/js/handlerRequires.js']: {
 			include: true,
-			etag: '0.0.1',
+			etag: '0.0.2',
 			age: 86400
 		},
 		['/js/play.js']: {
 			include: true,
-			etag: '0.0.3',
+			etag: '0.0.4',
 			age: 86400
 		},
 		['/js/']: {
 			include: true,
-			etag: '0.0.1',
+			etag: '0.0.2',
 			age: 86400
-		}, */
+		},
+		['/img/cch/']: {
+			include: true,
+			etag: '0.0.1',
+			age: 604800
+		},
+		['/img/talk/']: {
+			include: true,
+			etag: '0.0.1',
+			age: 604800
+		},
+		['/img/players/']: {
+			include: true,
+			etag: '0.0.1',
+			age: 604800
+		},
+		['/img/details/']: {
+			include: true,
+			etag: '0.0.1',
+			age: 604800
+		},
 		['/img/']: {
 			include: true,
 			etag: '0.0.1',
@@ -40,7 +55,13 @@ function cacheControl(req, res, path) {
 	if (!cnfg[path]) {
 		path = path.startsWith('/js/') ? '/js/' : path;
 		path = path.startsWith('/css/img/') ? '/css/img/' : path.startsWith('/css/') ? '/css/' : path;
-		path = path.startsWith('/img/') ? '/img/' : path;
+		if (path.startsWith('/img/') {
+			if (path.startsWith('/img/cch/') path = '/img/cch/'
+			else if (path.startsWith('/img/talk/') path = '/img/talk/'
+			else if (path.startsWith('/img/players/') path = '/img/players/'
+			else if ((path.startsWith('/img/details/') path = '/img/details'
+			else path = '/img/';
+		}
 	}
 	if (cnfg[path] && cnfg[path].include) {
 		if (req === cnfg[path].etag) {
