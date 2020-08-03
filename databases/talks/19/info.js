@@ -1,1 +1,1 @@
-{"img":"/img/talk/2.svg","color":"#c6dce4","type":1,"name":"Диалог с технической поддержкой","members":[1,18],"admins":[1],"activ":0,"lastActiv":1596169079424}
+{"img":"/img/talk/2.svg","color":"#c6dce4","type":1,"name":"Диалог с технической поддержкой","members":[1,18],"admins":[1],"activ":0,"lastActiv":1596169079424,"lastUpdate":1596471733675,"id":19,"userLastActiv":1596471733675}
