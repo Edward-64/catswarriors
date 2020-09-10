@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#686a97","type":0,"name":"Так вот","members":[20,19],"admins":[19],"activ":0,"lastActiv":1596182794710,"lastUpdate":1596220678577,"id":68,"pre":"\"\"","md":true,"userLastActiv":1596220678585}

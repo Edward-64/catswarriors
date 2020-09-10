@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#795d7c","type":1,"name":"Кудря Дрёма вы гдеее","members":[70,72,69],"admins":[69],"activ":0,"lastActiv":1598886258510,"lastUpdate":1599498748665,"id":316,"pre":"\"Где вы аааа\\n\"","md":false,"userLastActiv":1598902086059}

@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#63361b","type":0,"name":"Ы","members":[258,253],"admins":[253],"activ":0,"lastActiv":1597430357815,"lastUpdate":1597430304454,"id":304,"pre":"\"Ы\"","md":false,"read":[253,1597430351596]}

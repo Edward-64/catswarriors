@@ -1,12 +1,2 @@
 node_modules/
 *.swp
-*.save
-dp.js
-errs/
-databases/cats/
-databases/talks/
-databases/locs/
-databases/etc/
-databases/other.js
-img/players/
-nohup.out

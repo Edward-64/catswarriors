@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#ffe7d9","type":1,"name":"мощные коты","members":[87,99,90],"admins":[90],"activ":0,"lastActiv":1596412476553,"lastUpdate":1596411417535,"id":113,"pre":"\"да мы такие\"","md":false,"userLastActiv":1596411521626,"read":[99,1596411423358]}

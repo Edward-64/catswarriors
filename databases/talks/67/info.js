@@ -1,0 +1,1 @@
+{"img":"/img/talk/5.svg","color":"#df9a91","type":1,"name":"Общий чат","members":[1,3,4,6,7,18,20,21,22,23,24,25,26,28,29,37,19],"admins":[19],"activ":0,"lastActiv":1596299475081,"lastUpdate":1598700642514,"id":67,"pre":"\"Просто общий чат.\"","md":false,"userLastActiv":1597194368629}

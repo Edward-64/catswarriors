@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#c6dce4","type":1,"name":"Безымянный диалог №77","members":[6,70],"admins":[70],"activ":0,"lastActiv":1596404816297,"lastUpdate":1596458847777,"id":77,"userLastActiv":1596404816297}

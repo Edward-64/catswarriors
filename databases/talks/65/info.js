@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#795d7c","type":1,"name":"Яша и Эд","members":[25,6],"admins":[6],"activ":0,"lastActiv":1596179141093,"lastUpdate":1596534837484,"id":65,"userLastActiv":1596188548851,"pre":"\"\"","md":false}

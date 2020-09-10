@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#c6dce4","type":1,"name":"Палата 666","members":[1,19],"admins":[19],"activ":0,"lastActiv":1597224326480,"lastUpdate":1597968789340,"id":66,"pre":"\"Палата. 666. \\nИнтернет провели 31.07.2020.\"","md":false,"userLastActiv":1596189621915}

@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#9fad3c","type":1,"name":"Прыга ъуъ","members":[258,253],"admins":[253],"activ":0,"lastActiv":1597430223800,"lastUpdate":1597430181514,"id":278,"pre":"\"ЫЫЫЫЫЫЫЫЫ\"","md":false,"userLastActiv":1596655219170,"read":[253,1597430195586]}

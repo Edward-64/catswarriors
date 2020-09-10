@@ -1,0 +1,1 @@
+{"img":"/img/talk/2.svg","color":"#294d52","type":1,"name":"Диалог пидорасов","members":[70,71],"admins":[71],"activ":0,"lastActiv":1598886157187,"lastUpdate":1598885948425,"id":258,"userLastActiv":1598885972422,"pre":"\"\"","md":false,"read":[70,1598885972410]}
